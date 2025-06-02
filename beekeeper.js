@@ -24,7 +24,7 @@
  * @class Beekeeper
  */
 
-var Beekeeper = {
+let Beekeeper = {
 // Definition of MusicBee specific data types
 // Note: the comments for Web API methods will mention the data type when applicable
     /**

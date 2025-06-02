@@ -18,6 +18,15 @@
     <script src="player.js"></script>
 </head>
 <body>
+    <!-- Add SVG definitions for gradients -->
+    <svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+        <defs>
+            <linearGradient id="half-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="50%" stop-color="#FFD700"/>
+                <stop offset="50%" stop-color="#bbb"/>
+            </linearGradient>
+        </defs>
+    </svg>
     <div id="nowPlaying">
         <div id="npCover"></div>
         <div id="npInfo">
@@ -25,13 +34,62 @@
             <div id="npTrack"></div>
         </div>
     </div>
-    <div id="npMeta">
-        <span id="npStars">
-            <span class="star">&#9733;</span>
-            <span class="star">&#9733;</span>
-            <span class="star">&#9733;</span>
-            <span class="star">&#9733;</span>
-            <span class="star">&#9733;</span>
+    <div id="npMeta">        <span id="npStars">
+            <span class="star" data-value="1">
+                <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
+                    <defs>
+                        <linearGradient id="half-gradient-1" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="50%" stop-color="#FFD700"/>
+                            <stop offset="50%" stop-color="#bbb"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
+                </svg>
+            </span>
+            <span class="star" data-value="2">
+                <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
+                    <defs>
+                        <linearGradient id="half-gradient-2" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="50%" stop-color="#FFD700"/>
+                            <stop offset="50%" stop-color="#bbb"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
+                </svg>
+            </span>
+            <span class="star" data-value="3">
+                <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
+                    <defs>
+                        <linearGradient id="half-gradient-3" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="50%" stop-color="#FFD700"/>
+                            <stop offset="50%" stop-color="#bbb"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
+                </svg>
+            </span>
+            <span class="star" data-value="4">
+                <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
+                    <defs>
+                        <linearGradient id="half-gradient-4" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="50%" stop-color="#FFD700"/>
+                            <stop offset="50%" stop-color="#bbb"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
+                </svg>
+            </span>
+            <span class="star" data-value="5">
+                <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
+                    <defs>
+                        <linearGradient id="half-gradient-5" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="50%" stop-color="#FFD700"/>
+                            <stop offset="50%" stop-color="#bbb"/>
+                        </linearGradient>
+                    </defs>
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
+                </svg>
+            </span>
         </span>
         <span id="npLove" title="Love">
             <svg width="24" height="24" viewBox="0 0 24 24">

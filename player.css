@@ -64,21 +64,34 @@ body {
     gap: 1em;
 }
 
-#npStars {
-    display: flex;
-    gap: 0.2em;
-}
-
 #npStars .star {
-    font-size: 1.6em;
-    color: #444;
-    transition: color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2em;
+    height: 2em;
+    cursor: pointer;
     user-select: none;
+    margin: 0 0.1em;
 }
 
-#npStars .star.filled {
-    color: #FFD700; /* gold */
-    text-shadow: 0 0 4px #bfa70088;
+#npStars .star-svg {
+    width: 2em;
+    height: 2em;
+    display: block;
+    transition: filter 0.2s;
+}
+
+#npStars .star-svg.full path {
+    fill: #FFD700 !important;
+}
+#npStars .star-svg.half path {
+    fill: url(#half-gradient) !important;
+}
+
+#npStars .star:hover .star-svg,
+#npStars .star:focus .star-svg {
+    filter: drop-shadow(0 0 4px #FFD70088);
 }
 
 #npLove {
