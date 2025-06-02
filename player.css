@@ -1,0 +1,139 @@
+body {
+    background: #181818;
+    color: #eee;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+#nowPlaying {
+    margin-top: 2em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#npCover {
+    width: 280px;
+    height: 280px;
+    background: #222;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px #000a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#npCover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+#npInfo {
+    margin-top: 1.2em;
+    font-size: 1.2em;
+    font-weight: 500;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2em;
+}
+
+#npArtist, #npTrack {
+    max-width: 240px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+}
+
+#npMeta {
+    margin-top: 1em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1em;
+}
+
+#npStars {
+    display: flex;
+    gap: 0.2em;
+}
+
+#npStars .star {
+    font-size: 1.6em;
+    color: #444;
+    transition: color 0.2s;
+    user-select: none;
+}
+
+#npStars .star.filled {
+    color: #FFD700; /* gold */
+    text-shadow: 0 0 4px #bfa70088;
+}
+
+#npLove {
+    display: flex;
+    align-items: center;
+    margin-left: 0.5em;
+    cursor: pointer;
+}
+
+#npLove .heart {
+    fill: #888;
+    transition: fill 0.2s;
+}
+
+#npLove.loved .heart {
+    fill: #e53935;
+    filter: drop-shadow(0 0 4px #e5393588);
+}
+
+#npDash {
+    margin: 0 0.5em;
+    color: #aaa;
+}
+
+#controls {
+    margin-top: 2em;
+    display: flex;
+    gap: 1.5em;
+    justify-content: center;
+}
+
+#controls button {
+    background: #282828;
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    font-size: 1.7em;
+    cursor: pointer;
+    box-shadow: 0 2px 8px #0005;
+    transition: background 0.2s, transform 0.1s;
+    outline: none;
+}
+
+#controls button:active {
+    background: #444;
+    transform: scale(0.95);
+}
+
+#controls button#cPlayPause {
+    background: #1db954;
+    color: #fff;
+}
+
+#controls button#cPlayPause:active {
+    background: #169c43;
+}

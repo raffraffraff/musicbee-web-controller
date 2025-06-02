@@ -1,0 +1,1475 @@
+<!doctype html>
+<!--[if lt IE 7 ]><html class="ie ie6" lang="en"> <![endif]-->
+<!--[if IE 7 ]><html class="ie ie7" lang="en"> <![endif]-->
+<!--[if IE 8 ]><html class="ie ie8" lang="en"> <![endif]-->
+<!--[if (gte IE 9)|!(IE)]><!--><html lang="en"> <!--<![endif]-->
+<head>
+    <meta charset="utf-8">
+    <title>Beekeeper library test</title>
+    <meta name="description" content="Beekeeper library test">
+    <meta name="author" content="grismar@grismar.net">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  
+    <link rel="shortcut icon" href="/favicon.ico">
+  
+    <script type="text/javascript" src="jquery.js"></script>
+    <script type="text/javascript" src="json2.js"></script>
+    <script type="text/javascript" src="beekeeper.js"></script>
+    <script type="text/javascript">
+
+        $(document).ready(function() {
+            // get a transcript of any error responses in the console
+            $.ajaxSetup({
+                error: function(x, t, e) {
+                    if (x.status == 500) {
+                        console.log(x.responseText);
+                    }
+                }
+            });
+
+            // some url for a track in your library, has to exist; 'Comment' tag will be overwritten if committed
+            trackUrl = "M:\\FLAC (lossless, owned)\\Heap (Imogen) - Sparks\\10 - Run-Time.flac";
+            // some url for a playlist in your library, has to exist
+            playlistUrl = "C:\\Users\\grismar\\Music\\MusicBee\\Playlists\\MyList.mbp";
+            var queryFiles;
+            var queryPlaylists;
+
+            Beekeeper.Setting_GetPersistentStoragePath(
+                    function(data){ $("#target_Setting_GetPersistentStoragePath").html( data ); }
+            );
+
+            Beekeeper.Setting_GetReadOnly_BK(
+                    function(data){ $("#target_Setting_GetReadOnly_BK").html(
+                            ((data&&data.error)?'error: '+data.error:
+                                    (data?'Beekeeper is ReadOnly':'Beekeeper is not ReadOnly'))
+                    ); }
+            );
+
+            Beekeeper.Setting_GetShare_BK(
+                    function(data){ $("#target_Setting_GetShare_BK").html(
+                            ((data&&data.error)?'error: '+data.error:
+                                    (data?'Beekeeper is sharing files':'Beekeeper is not sharing files'))
+                    ); }
+            );
+
+            Beekeeper.Setting_GetVersion_BK(
+                    function(data){ $("#target_Setting_GetVersion_BK").html(
+                            ((data&&data.error)?'error: '+data.error:
+                                    (data?'Version '+data[0]+'.'+data[1]+'.'+data[2]:'No version data'))
+                    ); }
+            );
+
+            Beekeeper.Setting_GetSkin(
+                    function(data){ $("#target_Setting_GetSkin").html( data ); }
+            );
+
+            Beekeeper.Setting_GetSkinElementColor(
+                    Beekeeper.SkinElement.SkinInputPanelLabel,
+                    Beekeeper.ElementState.ElementStateDefault,
+                    Beekeeper.ElementComponent.ComponentForeground,
+                    function(data){ $("#target_Setting_GetSkinElementColor").html( data ); }
+            );
+
+            Beekeeper.Setting_IsWindowBordersSkinned(
+                    function(data){ $("#target_Setting_IsWindowBordersSkinned").html( data?'true':'false' ); }
+            );
+
+            Beekeeper.Library_GetFileProperty(
+                    trackUrl,
+                    Beekeeper.FilePropertyType.Duration,
+                    function(data){ $("#target_Library_GetFileProperty").html( data ); }
+            );
+
+            Beekeeper.Library_GetFileTag(
+                    trackUrl,
+                    Beekeeper.MetaDataType.Artist,
+                    function(data){ $("#target_Library_GetFileTag").html( data ); }
+            );
+
+            Beekeeper.Library_SetFileTag(
+                    trackUrl,
+                    Beekeeper.MetaDataType.Comment,
+                    'Wonderful!',
+                    function(data){ $("#target_Library_SetFileTag").html(
+                            (data===null)?'setting file tag failed, read only?':
+                                    (data?'tag set':'tags not set')
+                    ); }
+            );
+
+            function run_Library_CommitTagsToFile() {
+                alert('ok');
+                Beekeeper.Library_CommitTagsToFile(
+                        trackUrl,
+                        function(data){ $("#target_Library_CommitTagsToFile").html(
+                                (data===null)?'commit failed, read only?':
+                                        (data?'tags committed to file':'tags not committed to file')
+                        ); }
+                );
+            }
+            $("#link_Library_CommitTagsToFile").click(run_Library_CommitTagsToFile);
+
+            Beekeeper.Library_GetLyrics(
+                    trackUrl,
+                    Beekeeper.LyricsType.NotSpecified,
+                    function(data){ $("#target_Library_GetLyrics").html( data ); }
+            );
+
+            Beekeeper.Library_GetArtwork(
+                    trackUrl,
+                    0,
+                    function(data){ $("#target_Library_GetArtwork").html(
+                            "<img src='data:image/jpg;base64," + data + "'/>"
+                    ); }
+            );
+
+            function run_Library_QueryFiles() {
+                // reset any previous results
+                queryFiles = '';
+                Beekeeper.Library_QueryFiles(
+                        '<SmartPlaylist><Source Type="1"><Conditions CombineMethod="All"><Condition Field="None" Comparison="Contains" Value="'+$("#input_Library_QueryFiles").val()+'" /></Conditions></Source></SmartPlaylist>',
+                        function(data){
+                            $("#target_Library_QueryFiles").html(
+                                    (data&&!data.error)?'query returned results':'query returned no results'+
+                                            (data.error?data.error:'')
+                            );
+                            // start collecting results
+                            Beekeeper.Library_QueryGetNextFile(
+                                    process_Library_QueryGetNextFile
+                            );
+                        }
+                );
+            }
+            $("#link_Library_QueryFiles").click(run_Library_QueryFiles);
+
+            //  Beekeeper.Library_QueryGetNextFile called from within Beekeeper.Library_QueryFiles callback
+            function process_Library_QueryGetNextFile(data) {
+                if (data!=null) {
+                    queryFiles += data + '</br>';
+                    // chain to the next item
+                    Beekeeper.Library_QueryGetNextFile(
+                            process_Library_QueryGetNextFile
+                    );
+                } else {
+                    if (queryFiles=='') {
+                        $("#target_Library_QueryGetNextFile").html( 'no results from Library_QueryGetNextFile ');
+                    } else {
+                        $("#target_Library_QueryGetNextFile").html( queryFiles );
+                    }
+                }
+            }
+
+            Beekeeper.Player_GetPosition(
+                    function(data){ $("#target_Player_GetPosition").html( data ); }
+            );
+
+
+            function run_Player_SetPosition() {
+                Beekeeper.Player_SetPosition(
+                        parseInt($("#input_Player_SetPosition").val()),
+                        function(data){ $("#target_Player_SetPosition").html(
+                                (data&&!data.error)?'position set':'unable to set position '+
+                                        (data.error?data.error:'')
+                        ); }
+                );
+            }
+            $("#link_Player_SetPosition").click(run_Player_SetPosition);
+
+            Beekeeper.Player_GetPlayState(
+                    function(data){ $("#target_Player_GetPlayState").html( data ); }
+            );
+
+            function run_Player_PlayPause() {
+                Beekeeper.Player_PlayPause(
+                        function(data){ $("#target_Player_PlayPause").html(
+                                (data&&!data.error)?'play/pause toggled':'unable to toggle play/pause '+
+                                        (data.error?data.error:'')
+                        ); }
+                )
+            }
+            $("#link_Player_PlayPause").click(run_Player_PlayPause);
+
+            function run_Player_Stop() {
+                Beekeeper.Player_Stop(
+                        function(data){ $("#target_Player_Stop").html(
+                                (data&&!data.error)?'playback stopped':'unable to stop playback '+
+                                        (data.error?data.error:'')
+                        ); }
+                )
+            }
+            $("#link_Player_Stop").click(run_Player_Stop);
+
+            function run_Player_StopAfterCurrent() {
+                Beekeeper.Player_StopAfterCurrent(
+                        function(data){ $("#target_Player_StopAfterCurrent").html(
+                                (data&&!data.error)?'playback stops after current track':'unable to stop playback '+
+                                        (data.error?data.error:'')
+                        ); }
+                )
+            }
+            $("#link_Player_StopAfterCurrent").click(run_Player_StopAfterCurrent);
+
+            function run_Player_PlayPreviousTrack() {
+                Beekeeper.Player_PlayPreviousTrack(
+                        function(data){ $("#target_Player_PlayPreviousTrack").html(
+                                (data&&!data.error)?'playing previous track':'unable to play previous track '+
+                                        (data.error?data.error:'')
+                        ); }
+                )
+            }
+            $("#link_Player_PlayPreviousTrack").click(run_Player_PlayPreviousTrack);
+
+            function run_Player_PlayNextTrack() {
+                Beekeeper.Player_PlayNextTrack(
+                        function(data){ $("#target_Player_PlayNextTrack").html(
+                                (data&&!data.error)?'playing next track':'unable to play next track '+
+                                        (data.error?data.error:'')
+                        ); }
+                )
+            }
+            $("#link_Player_PlayNextTrack").click(run_Player_PlayNextTrack);
+
+            function run_Player_StartAutoDj() {
+                Beekeeper.Player_StartAutoDj(
+                        function(data){ $("#target_Player_StartAutoDj").html(
+                                (data&&!data.error)?'started auto DJ':'unable to start auto DJ '+
+                                        (data.error?data.error:'')
+                        ); }
+                )
+            }
+            $("#link_Player_StartAutoDj").click(run_Player_StartAutoDj);
+
+            function run_Player_EndAutoDj() {
+                Beekeeper.Player_EndAutoDj(
+                        function(data){ $("#target_Player_EndAutoDj").html(
+                                (data&&!data.error)?'stopped auto DJ':'unable to stop auto DJ '+
+                                        (data.error?data.error:'')
+                        ); }
+                )
+            }
+            $("#link_Player_EndAutoDj").click(run_Player_EndAutoDj);
+
+            Beekeeper.Player_GetVolume(
+                    function(data){ $("#target_Player_GetVolume").html( data ); }
+            );
+
+            Beekeeper.Player_SetVolume(
+                    parseFloat(0.5),
+                    function(data){ $("#target_Player_SetVolume").html(
+                            (data&&!data.error)?'volume set':'failed to set volume '+
+                                    (data.error?data.error:'')
+                    ); }
+            );
+
+            Beekeeper.Player_GetMute(
+                    function(data){ $("#target_Player_GetMute").html( data?'true':'false' ); }
+            );
+
+            Beekeeper.Player_SetMute(
+                    false,
+                    function(data){ $("#target_Player_SetMute").html(
+                            (data&&!data.error)?'mute set':'failed to set mute '+
+                                    (data.error?data.error:'')
+                    ); }
+            );
+
+            Beekeeper.Player_GetShuffle(
+                    function(data){ $("#target_Player_GetShuffle").html( data?'true':'false' ); }
+            );
+
+            Beekeeper.Player_SetShuffle(
+                    false,
+                    function(data){ $("#target_Player_SetShuffle").html(
+                            (data&&!data.error)?'shuffle set':'failed to set shuffle '+
+                                    (data.error?data.error:'')
+                    ); }
+            );
+
+            Beekeeper.Player_GetRepeat(
+                    function(data){ $("#target_Player_GetRepeat").html( data ); }
+            );
+
+            Beekeeper.Player_SetRepeat(
+                    Beekeeper.RepeatMode.None,
+                    function(data){ $("#target_Player_SetRepeat").html(
+                            (data&&!data.error)?'repeat mode set':'failed to set repeat mode '+
+                                    (data.error?data.error:'')
+                    ); }
+            );
+
+            Beekeeper.Player_GetEqualizerEnabled(
+                    function(data){ $("#target_Player_GetEqualizerEnabled").html( data?'enabled':'disabled' ); }
+            );
+
+            Beekeeper.Player_SetEqualizerEnabled(
+                    false,
+                    function(data){ $("#target_Player_SetEqualizerEnabled").html(
+                            (data&&!data.error)?'equalizer enabled set':'failed to set equalizer enabled '+
+                                    (data.error?data.error:'')
+                    ); }
+            );
+
+            Beekeeper.Player_GetDspEnabled(
+                    function(data){ $("#target_Player_GetDspEnabled").html( data?'enabled':'disabled' ); }
+            );
+
+            Beekeeper.Player_SetDspEnabled(
+                    false,
+                    function(data){ $("#target_Player_SetDspEnabled").html(
+                            (data&&!data.error)?'dsp enabled set':'failed to set dsp enabled '+
+                                    (data.error?data.error:'')
+                    ); }
+            );
+
+            Beekeeper.Player_GetScrobbleEnabled(
+                    function(data){ $("#target_Player_GetScrobbleEnabled").html( data?'enabled':'disabled' ); }
+            );
+
+            Beekeeper.Player_SetScrobbleEnabled(
+                    true,
+                    function(data){ $("#target_Player_SetScrobbleEnabled").html(
+                            (data&&!data.error)?'last.fm scrobbling set':'failed to set last.fm scrobbling '+
+                                    (data.error?data.error:'')
+                    ); }
+            );
+
+            Beekeeper.NowPlaying_GetFileUrl(
+                    function(data){ $("#target_NowPlaying_GetFileUrl").html( data ); }
+            );
+
+            Beekeeper.NowPlaying_GetDuration(
+                    function(data){ $("#target_NowPlaying_GetDuration").html( data ); }
+            );
+
+            Beekeeper.NowPlaying_GetFileProperty(
+                    Beekeeper.FilePropertyType.PlayCount,
+                    function(data){ $("#target_NowPlaying_GetFileProperty").html( data ); }
+            );
+
+            Beekeeper.NowPlaying_GetFileTag(
+                    Beekeeper.MetaDataType.Album,
+                    function(data){ $("#target_NowPlaying_GetFileProperty").html( data ); }
+            );
+
+            Beekeeper.NowPlaying_GetLyrics(
+                    function(data){ $("#target_NowPlaying_GetLyrics").html( data ); }
+            );
+
+            Beekeeper.NowPlaying_GetArtwork(
+                    function(data){ $("#target_NowPlaying_GetArtwork").html(
+                            "<img src='data:image/jpg;base64," + data + "'/>"
+                    ); }
+            );
+
+            function run_NowPlayingList_Clear() {
+                Beekeeper.NowPlayingList_Clear(
+                        function(data){ $("#target_NowPlayingList_Clear").html(
+                                (data&&!data.error)?'Now Playing cleared':'unable to clear Now Playing '+
+                                        (data.error?data.error:'')
+                        ); }
+                )
+            }
+            $("#link_NowPlayingList_Clear").click(run_NowPlayingList_Clear);
+
+            function run_NowPlayingList_QueryFiles() {
+                // reset any previous results
+                queryFiles = '';
+                Beekeeper.NowPlayingList_QueryFiles(
+                        '<SmartPlaylist><Source Type="1"><Conditions CombineMethod="All"><Condition Field="None" Comparison="Contains" Value="'+$("#input_NowPlayingList_QueryFiles").val()+'" /></Conditions></Source></SmartPlaylist>',
+                        function(data){
+                            $("#target_NowPlayingList_QueryFiles").html(
+                                    (data&&!data.error)?'query returned results':'query returned no results '+
+                                            (data.error?data.error:'')
+                            );
+                            // start collecting results
+                            Beekeeper.NowPlayingList_QueryGetNextFile(
+                                    process_NowPlayingList_QueryGetNextFile
+                            );
+                        }
+                );
+            }
+            $("#link_NowPlayingList_QueryFiles").click(run_NowPlayingList_QueryFiles);
+
+            //  Beekeeper.NowPlayingList_QueryGetNextFile called from within Beekeeper.NowPlayingList_QueryFiles callback
+            function process_NowPlayingList_QueryGetNextFile(data) {
+                if (data!=null) {
+                    queryFiles += data + '</br>';
+                    // chain to the next item
+                    Beekeeper.NowPlayingList_QueryGetNextFile(
+                            process_NowPlayingList_QueryGetNextFile
+                    );
+                } else {
+                    if (queryFiles=='') {
+                        $("#target_NowPlayingList_QueryGetNextFile").html( 'no results from NowPlayingList_QueryGetNextFile ');
+                    } else {
+                        $("#target_NowPlayingList_QueryGetNextFile").html( queryFiles );
+                    }
+                }
+            }
+
+            function run_NowPlayingList_PlayNow() {
+                Beekeeper.NowPlayingList_PlayNow(
+                        trackUrl,
+                        function(data){ $("#NowPlayingList_PlayNow").html(
+                                (data&&!data.error)?'started playback':'could not start playback '+
+                                        (data.error?data.error:'')
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_PlayNow").click(run_NowPlayingList_PlayNow);
+
+            function run_NowPlayingList_QueueNext() {
+                Beekeeper.NowPlayingList_QueueNext(
+                        trackUrl,
+                        function(data){ $("#NowPlayingList_QueueNext").html(
+                                (data&&!data.error)?'enqueued as next track':'could not enqueue as next '+
+                                        (data.error?data.error:'')
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_QueueNext").click(run_NowPlayingList_QueueNext);
+
+            function run_NowPlayingList_QueueLast() {
+                Beekeeper.NowPlayingList_QueueLast(
+                        trackUrl,
+                        function(data){ $("#NowPlayingList_QueueLast").html(
+                                (data&&!data.error)?'enqueued as last track':'could not enqueue as last '+
+                                        (data.error?data.error:'')
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_QueueLast").click(run_NowPlayingList_QueueLast);
+
+            function run_NowPlayingList_PlayLibraryShuffled() {
+                Beekeeper.NowPlayingList_PlayLibraryShuffled(
+                        function(data){ $("#NowPlayingList_PlayLibraryShuffled").html(
+                                (data&&!data.error)?'playing library shuffled':'could not play library shuffled '+
+                                        (data.error?data.error:'')
+                        ); }
+                )
+            }
+            $("#link_NowPlayingList_PlayLibraryShuffled").click(run_NowPlayingList_PlayLibraryShuffled);
+
+            function run_Playlist_QueryPlaylists() {
+                // reset any previous results
+                queryPlaylists = '';
+                Beekeeper.Playlist_QueryPlaylists(
+                        function(data){
+                            $("#target_Playlist_QueryPlaylists").html(
+                                    (data&&!data.error)?'query returned results':'query returned no results '+
+                                            (data.error?data.error:'')
+                            );
+                            // start collecting results
+                            Beekeeper.Playlist_QueryGetNextPlaylist(
+                                    process_Playlist_QueryGetNextPlaylist
+                            );
+                        }
+                );
+            }
+            $("#link_Playlist_QueryPlaylists").click(run_Playlist_QueryPlaylists);
+
+            //  Beekeeper.NowPlayingList_QueryGetNextFile called from within Beekeeper.Playlist_QueryPlaylists callback
+            function process_Playlist_QueryGetNextPlaylist(data) {
+                if (data!=null) {
+                    queryPlaylists += data + '</br>';
+                    // chain to the next item
+                    Beekeeper.Playlist_QueryGetNextPlaylist(
+                            process_Playlist_QueryGetNextPlaylist
+                    );
+                } else {
+                    if (queryPlaylists=='') {
+                        $("#target_Playlist_QueryGetNextPlaylist").html( 'no results from Playlist_QueryGetNextPlaylist ');
+                    } else {
+                        $("#target_Playlist_QueryGetNextPlaylist").html( queryPlaylists );
+                    }
+                }
+            }
+
+            Beekeeper.Playlist_GetFormat(
+                    playlistUrl,
+                    function(data){ $("#target_Playlist_GetFormat").html( data ); }
+            );
+
+            function run_Playlist_QueryFiles() {
+                // reset any previous results
+                queryFiles = '';
+                Beekeeper.Playlist_QueryFiles(
+                        playlistUrl,
+                        function(data){
+                            $("#target_Playlist_QueryFiles").html(
+                                    (data&&!data.error)?'query returned results':'query returned no results '+
+                                            (data.error?data.error:'')
+                            );
+                            // start collecting results
+                            Beekeeper.Playlist_QueryGetNextFile(
+                                    process_Playlist_QueryGetNextFile
+                            );
+                        }
+                );
+            }
+            $("#link_Playlist_QueryFiles").click(run_Playlist_QueryFiles);
+
+            //  Beekeeper.Playlist_QueryGetNextFile called from within Beekeeper.Playlist_QueryFiles callback
+            function process_Playlist_QueryGetNextFile(data) {
+                if (data!=null) {
+                    queryFiles += data + '</br>';
+                    // chain to the next item
+                    Beekeeper.Playlist_QueryGetNextFile(
+                            process_Playlist_QueryGetNextFile
+                    );
+                } else {
+                    if (queryFiles=='') {
+                        $("#target_Playlist_QueryGetNextFile").html( 'no results from Playlist_QueryGetNextFile ');
+                    } else {
+                        $("#target_Playlist_QueryGetNextFile").html( queryFiles );
+                    }
+                }
+            }
+
+            Beekeeper.MB_RefreshPanels(
+                    function(data){ $("#target_MB_RefreshPanels").html(
+                            (data&&!data.error)?'panels refreshed':'could not refresh panels '+
+                                    (data.error?data.error:'')
+                    ); }
+            );
+
+            Beekeeper.Setting_GetFieldName(
+                    Beekeeper.MetaDataType.Artist,
+                    function(data){ $("#target_Setting_GetFieldName").html( data ); }
+            );
+
+            Beekeeper.Setting_GetDefaultFontName_BK(
+                    function(data){ $("#target_Setting_GetDefaultFontName_BK")
+                            .html( data )
+                            .css ('font-family', data);
+                    }
+            );
+
+            Beekeeper.NowPlayingList_GetFileUrlAt(
+                    0,
+                    function(data){ $("#target_NowPlayingList_GetFileUrlAt").html( data ); }
+            );
+
+            Beekeeper.NowPlayingList_GetFilePropertyAt(
+                    0,
+                    Beekeeper.FilePropertyType.Duration,
+                    function(data){ $("#target_NowPlayingList_GetFilePropertyAt").html( data ); }
+            );
+
+            Beekeeper.NowPlayingList_GetFileTagAt(
+                    0,
+                    Beekeeper.MetaDataType.Artist,
+                    function(data){ $("#target_NowPlayingList_GetFileTagAt").html( data ); }
+            );
+
+            Beekeeper.MB_GetLocalization(
+                    'something',
+                    'test',
+                    function(data){ $("#target_MB_GetLocalization").html( data ); }
+            );
+
+            function run_NowPlayingList_IsAnyPriorTracks() {
+                Beekeeper.NowPlayingList_IsAnyPriorTracks(
+                        function(data){ $("#target_NowPlayingList_IsAnyPriorTracks").html(
+                                (data==null||(data&&data.error)?'error: '+data.error:
+                                        (data?'prior tracks to current':'no prior tracks to current'))
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_IsAnyPriorTracks").click(run_NowPlayingList_IsAnyPriorTracks);
+
+            function run_NowPlayingList_IsAnyFollowingTracks() {
+                Beekeeper.NowPlayingList_IsAnyFollowingTracks(
+                        function(data){ $("#target_NowPlayingList_IsAnyFollowingTracks").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'following tracks after current':'no following tracks after current'))
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_IsAnyFollowingTracks").click(run_NowPlayingList_IsAnyFollowingTracks);
+
+            function run_Player_ShowEqualizer() {
+                Beekeeper.Player_ShowEqualizer(
+                        function(data){ $("#target_Player_ShowEqualizer").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'equalizer visible':'equalizer not visible'))
+                        ); }
+                );
+            }
+            $("#link_Player_ShowEqualizer").click(run_Player_ShowEqualizer);
+
+            function run_Player_GetAutoDjEnabled() {
+                Beekeeper.Player_GetAutoDjEnabled(
+                        function(data){ $("#target_Player_GetAutoDjEnabled").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'AutoDj enabled':'AutoDj not enabled'))
+                        ); }
+                );
+            }
+            $("#link_Player_GetAutoDjEnabled").click(run_Player_GetAutoDjEnabled);
+
+            function run_Player_GetStopAfterCurrentEnabled() {
+                Beekeeper.Player_GetStopAfterCurrentEnabled(
+                        function(data){ $("#target_Player_GetStopAfterCurrentEnabled").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'playback stops after current':'playback does not stop after current'))
+                        ); }
+
+                );
+            }
+            $("#link_Player_GetStopAfterCurrentEnabled").click(run_Player_GetStopAfterCurrentEnabled);
+
+            Beekeeper.Player_GetCrossfade(
+                    function(data){ $("#target_Player_GetCrossfade").html(
+                            (data.error?'error: '+data.error:
+                                    (data?'crossfade enabled':'crossfade not enabled'))
+                    ); }
+            );
+
+            Beekeeper.Player_SetCrossfade(
+                    false,
+                    function(data){ $("#target_Player_SetCrossfade").html(
+                            (data&&!data.error)?'crossfade value was set':'could not set crossfade '+
+                                    (data.error?data.error:'')
+                    ); }
+            );
+
+            Beekeeper.Player_GetReplayGainMode (
+                    function(data){ $("#target_Player_GetReplayGainMode").html(
+                            (data.error?'error: '+data.error:data)
+                    ); }
+            );
+
+            Beekeeper.Player_SetReplayGainMode (
+                    Beekeeper.ReplayGainMode.Off,
+                    function(data){ $("#target_Player_SetReplayGainMode").html(
+                            (data&&!data.error)?'replay gain mode was set':'could not set replay gain mode '+
+                                    (data.error?data.error:'')
+                    ); }
+            );
+
+            function run_Player_QueueRandomTracks() {
+                Beekeeper.Player_QueueRandomTracks(
+                        parseInt($("#input_Player_QueueRandomTracks").val()),
+                        function(data){ $("#target_Player_QueueRandomTracks").html(
+                                data.error?'error: '+data.error:'tracks queued'
+                        ); }
+
+                );
+            }
+            $("#link_Player_QueueRandomTracks").click(run_Player_QueueRandomTracks);
+
+            function run_NowPlayingList_GetNextIndex () {
+                Beekeeper.NowPlayingList_GetNextIndex (
+                        parseInt($("#input_NowPlayingList_GetNextIndex").val()),
+                        function(data){ $("#target_NowPlayingList_GetNextIndex").html(
+                                (data.error?'error: '+data.error:data)
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_GetNextIndex").click(run_NowPlayingList_GetNextIndex);
+
+            function run_NowPlaying_GetArtistPictureLink_BK() {
+                Beekeeper.NowPlaying_GetArtistPictureLink_BK (
+                    0,
+                    function(data){ $("#target_NowPlaying_GetArtistPictureLink_BK").html(
+                            (data.error?'error: '+data.error:'<img src="'+data+'"/>')
+                    ); }
+                );
+            }
+            $("#link_NowPlaying_GetArtistPictureLink_BK").click(run_NowPlaying_GetArtistPictureLink_BK);
+
+            function run_NowPlaying_GetDownloadedArtworkLink_BK() {
+                Beekeeper.NowPlaying_GetDownloadedArtworkLink_BK (
+                        function(data){ $("#target_NowPlaying_GetDownloadedArtworkLink_BK").html(
+                                (data===null)?'no downloaded artwork':
+                                        (data.error?'error: '+data.error:'<img src="'+data+'"/>')
+                        ); }
+                );
+            }
+            $("#link_NowPlaying_GetDownloadedArtworkLink_BK").click(run_NowPlaying_GetDownloadedArtworkLink_BK);
+
+            Beekeeper.Player_GetShowRatingTrack(
+                    function(data){ $("#target_Player_GetShowRatingTrack").html(
+                            (data.error?'error: '+data.error:
+                                    (data?'star rating shown':'star rating not shown'))
+                    ); }
+            );
+
+            Beekeeper.Player_GetShowRatingLove(
+                    function(data){ $("#target_Player_GetShowRatingLove").html(
+                            (data.error?'error: '+data.error:
+                                    (data?'love rating shown':'love rating not shown'))
+                    ); }
+            );
+
+            Beekeeper.Setting_GetLastFmUserId(
+                    function(data){ $("#target_Setting_GetLastFmUserId").html(
+                            (data===null)?'no Last.fm id':
+                                    (data.error?'error: '+data.error:data)
+                    ); }
+            );
+
+            Beekeeper.Playlist_GetName(
+                    playlistUrl,
+                    function(data){ $("#target_Playlist_GetName").html(
+                            (data.error?'error: '+data.error:data)
+                    ); }
+            );
+
+            var createdPlayList = null;
+            function run_Playlist_CreatePlaylist() {
+                Beekeeper.Setting_GetPersistentStoragePath(
+                        function(path){
+                            Beekeeper.Playlist_CreatePlaylist(
+                                    '',
+                                    'test_playlist',
+                                    ['fakeFile_1.mp3', 'fakeFile_2.mp3'],
+                                    function(data){
+                                        $("#target_Playlist_CreatePlaylist").html(
+                                            (data===null)?'not allowed to write playlist (read only? non-existent folder?)':
+                                                    (data.error?'error: '+data.error:data)
+                                        );
+                                        createdPlayList = data;
+                                    }
+                            )
+                        }
+                );
+            }
+            $("#link_Playlist_CreatePlaylist").click(run_Playlist_CreatePlaylist);
+
+            function run_Playlist_SetFiles() {
+                if (createdPlayList==null) {
+                    alert ('Create the playlist first with Playlist_CreatePlaylist!')
+                } else {
+                    Beekeeper.Playlist_SetFiles(
+                            createdPlayList,
+                            ['fakeFile_3.mp3', 'fakeFile_4.mp3'],
+                            function(data){ $("#target_Playlist_SetFiles").html(
+                                    (data===null)?'not allowed to write playlist (read only? non-existent list?)':
+                                            (data.error?'error: '+data.error:
+                                                    (data?'playlist files set':'playlist files not set'))
+                            ); }
+                    )
+                }
+            }
+            $("#link_Playlist_SetFiles").click(run_Playlist_SetFiles);
+
+            $("#input_Library_QuerySimilarArtists_1").val('Madonna');
+            $("#input_Library_QuerySimilarArtists_2").val(0.5);
+            function run_Library_QuerySimilarArtists () {
+                Beekeeper.Library_QuerySimilarArtists(
+                        $("#input_Library_QuerySimilarArtists_1").val(),
+                        parseFloat($("#input_Library_QuerySimilarArtists_2").val()),
+                        function(data){ $("#target_Library_QuerySimilarArtists").html(
+                                (data===null)?'no result for similarity':
+                                        (data.error?'error: '+data.error:data.split('\0').join(';'))
+                        ); }
+                );
+            }
+            $("#link_Library_QuerySimilarArtists").click(run_Library_QuerySimilarArtists);
+
+            Beekeeper.Library_QueryLookupTable(
+                    '','','',
+                    function(data){ $("#target_Library_QueryLookupTable").html(
+                            (data.error?'error: '+data.error:data)
+                    ); }
+            );
+
+            Beekeeper.Library_QueryGetLookupTableValue(
+                    trackUrl,
+                    function(data){ $("#target_Library_QueryGetLookupTableValue").html(
+                            (data===null)?'no lookup table value':
+                                    (data.error?'error: '+data.error:data)
+                    ); }
+            );
+
+            function run_NowPlayingList_QueueFilesNext () {
+                Beekeeper.NowPlayingList_QueueFilesNext(
+                        [trackUrl, trackUrl],
+                        function(data){ $("#target_NowPlayingList_QueueFilesNext").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'tracks enqueued':'tracks not enqueued'))
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_QueueFilesNext").click(run_NowPlayingList_QueueFilesNext);
+
+            function run_NowPlayingList_QueueFilesLast () {
+                Beekeeper.NowPlayingList_QueueFilesLast(
+                        [trackUrl, trackUrl],
+                        function(data){ $("#target_NowPlayingList_QueueFilesLast").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'tracks enqueued':'tracks not enqueued'))
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_QueueFilesLast").click(run_NowPlayingList_QueueFilesLast);
+
+            Beekeeper.Setting_GetWebProxy(
+                    function(data){ $("#target_Setting_GetWebProxy").html(
+                            (data===null)?'no web proxy set':
+                                (data.error?'error: '+data.error:data)
+                    ); }
+            );
+
+            function run_NowPlayingList_RemoveAt() {
+                Beekeeper.NowPlayingList_RemoveAt(
+                        0, // top item
+                        function(data){ $("#target_NowPlayingList_RemoveAt").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'track removed':'track not removed'))
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_RemoveAt").click(run_NowPlayingList_RemoveAt);
+
+            function run_Playlist_RemoveAt () {
+                if (createdPlayList==null) {
+                    alert ('Create the playlist first with Playlist_CreatePlaylist!')
+                } else {
+                    Beekeeper.Playlist_RemoveAt(
+                            createdPlayList,
+                            0, // top item
+                            function(data){ $("#target_Playlist_RemoveAt").html(
+                                    (data===null)?'removing files failed, read only?':
+                                            (data.error?'error: '+data.error:
+                                                    (data?'track removed':'track not removed'))
+                            ); }
+                    );
+                }
+            }
+            $("#link_Playlist_RemoveAt").click(run_Playlist_RemoveAt);
+
+            function run_MB_SetWindowSize() {
+                Beekeeper.MB_SetWindowSize(
+                        1200,
+                        1000,
+                        function(data){ $("#target_MB_SetWindowSize").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'windows resized':'window not resized'))
+                        ); }
+                );
+            }
+            $("#link_MB_SetWindowSize").click(run_MB_SetWindowSize);
+
+            function run_Library_GetArtistPictureLink_BK() {
+                Beekeeper.Library_GetArtistPictureLink_BK(
+                        'Madonna',
+                        0,
+                        0,
+                        function(data){ $("#target_Library_GetArtistPictureLink_BK").html(
+                                (data.error?'error: '+data.error:'<img src="'+data+'"/>')
+                        ); }
+                );
+            }
+            $("#link_Library_GetArtistPictureLink_BK").click(run_Library_GetArtistPictureLink_BK);
+
+            function run_Pending_GetFileUrl() {
+                Beekeeper.Pending_GetFileUrl(
+                        function(data){ $("#target_Pending_GetFileUrl").html(
+                                (data===null)?'no pending track':
+                                        (data.error?'error: '+data.error:data)
+                        ); }
+                );
+            }
+            $("#link_Pending_GetFileUrl").click(run_Pending_GetFileUrl);
+
+            function run_Pending_GetFileProperty() {
+                Beekeeper.Pending_GetFileProperty(
+                        Beekeeper.FilePropertyType.Duration,
+                        function(data){ $("#target_Pending_GetFileProperty").html(
+                                (data===null)?'no pending track or no property':
+                                        (data.error?'error: '+data.error:data)
+                        ); }
+                );
+            }
+            $("#link_Pending_GetFileProperty").click(run_Pending_GetFileProperty);
+
+
+            function run_Pending_GetFileTag() {
+                Beekeeper.Pending_GetFileTag(
+                        Beekeeper.MetaDataType.Artist,
+                        function(data){ $("#target_Pending_GetFileTag").html(
+                                (data===null)?'no pending track or no tag':
+                                        (data.error?'error: '+data.error:data)
+                        ); }
+                );
+            }
+            $("#link_Pending_GetFileTag").click(run_Pending_GetFileTag);
+
+            function run_Player_GetButtonEnabled() {
+                Beekeeper.Player_GetButtonEnabled(
+                        Beekeeper.PlayButtonType.NextTrack,
+                        function(data){ $("#target_Player_GetButtonEnabled").html(
+                                (data===null)?'not a valid button':
+                                        (data.error?'error: '+data.error:
+                                                (data?'button enabled':'button not enabled'))
+                        ); }
+                );
+            }
+            $("#link_Player_GetButtonEnabled").click(run_Player_GetButtonEnabled);
+
+            function run_NowPlayingList_MoveFiles() {
+                Beekeeper.NowPlayingList_MoveFiles(
+                        [9, 8], // move the 9th and 10th in reverse order
+                        -1,     // to the top position -1 [not 0!]
+                        function(data){ $("#target_NowPlayingList_MoveFiles").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'tracks moved':'tracks not moved'))
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_MoveFiles").click(run_NowPlayingList_MoveFiles);
+
+            function run_NowPlayingList_MoveFiles_BK() {
+                Beekeeper.NowPlayingList_MoveFiles_BK(
+                        [9, 8], // move the 9th and 10th in reverse order
+                        0,      // to the top position
+                        function(data){ $("#target_NowPlayingList_MoveFiles_BK").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'tracks moved':'tracks not moved'))
+                        ); }
+                );
+            }
+            $("#link_NowPlayingList_MoveFiles_BK").click(run_NowPlayingList_MoveFiles_BK);
+
+            Beekeeper.Library_GetArtworkUrlLink_BK (
+                    trackUrl,
+                    0,
+                    function(data){ $("#target_Library_GetArtworkUrlLink_BK").html(
+                            (data===null)?'no artwork':
+                                    (data.error?'error: '+data.error:'<img src="'+data+'"/>')
+                    ); }
+
+            );
+
+            function run_Library_GetArtistPictureThumbLink_BK() {
+                Beekeeper.Library_GetArtistPictureThumbLink_BK(
+                        'Madonna',
+                        function(data){ $("#target_Library_GetArtistPictureThumbLink_BK").html(
+                                (data.error?'error: '+data.error:'<img src="'+data+'"/>')
+                        ); }
+                );
+            }
+            $("#link_Library_GetArtistPictureThumbLink_BK").click(run_Library_GetArtistPictureThumbLink_BK);
+
+            function run_NowPlaying_GetArtworkUrlLink_BK() {
+                Beekeeper.NowPlaying_GetArtworkUrlLink_BK (
+                        function(data){ $("#target_NowPlaying_GetArtworkUrlLink_BK").html(
+                                (data===null)?'no artwork':
+                                        (data.error?'error: '+data.error:'<img src="'+data+'"/>')
+                        ); }
+
+                );
+            }
+            $("#link_NowPlaying_GetArtworkUrlLink_BK").click(run_NowPlaying_GetArtworkUrlLink_BK);
+
+            function run_NowPlaying_GetDownloadedArtworkUrlLink_BK() {
+                Beekeeper.NowPlaying_GetDownloadedArtworkUrlLink_BK(
+                        function(data){ $("#target_NowPlaying_GetDownloadedArtworkUrlLink_BK").html(
+                                (data.error?'error: '+data.error:'<img src="'+data+'"/>')
+                        ); }
+                );
+            }
+            $("#link_NowPlaying_GetDownloadedArtworkUrlLink_BK").click(run_NowPlaying_GetDownloadedArtworkUrlLink_BK);
+
+            function run_NowPlaying_GetArtistPictureThumbLink_BK() {
+                Beekeeper.NowPlaying_GetArtistPictureThumbLink_BK(
+                        function(data){ $("#target_NowPlaying_GetArtistPictureThumbLink_BK").html(
+                                (data.error?'error: '+data.error:'<img src="'+data+'"/>')
+                        ); }
+                );
+            }
+            $("#link_NowPlaying_GetArtistPictureThumbLink_BK").click(run_NowPlaying_GetArtistPictureThumbLink_BK);
+
+            function run_Playlist_IsInList() {
+                Beekeeper.Playlist_IsInList(
+                        playlistUrl,
+                        trackUrl,
+                        function(data){ $("#target_Playlist_IsInList").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'track '+trackUrl+' in playlist '+playlistUrl:
+                                                'track '+trackUrl+' not in playlist '+playlistUrl))
+                        ); }
+                );
+            }
+            $("#link_Playlist_IsInList").click(run_Playlist_IsInList);
+
+            function run_Library_GetArtistPictureUrls() {
+                Beekeeper.Library_GetArtistPictureUrls(
+                        "Madonna",
+                        true,
+                        function(data){ $("#target_Library_GetArtistPictureUrls_local").html(
+                                (data.error?'error: '+data.error:data.join("; "))
+                        ); }
+                );
+                Beekeeper.Library_GetArtistPictureUrls(
+                        "Madonna",
+                        false,
+                        function(data){ $("#target_Library_GetArtistPictureUrls_all").html(
+                                (data.error?'error: '+data.error:data.join("; "))
+                        ); }
+                );
+            }
+            $("#link_Library_GetArtistPictureUrls").click(run_Library_GetArtistPictureUrls);
+
+            function run_NowPlaying_GetArtistPictureUrls() {
+                Beekeeper.NowPlaying_GetArtistPictureUrls(
+                        true,
+                        function(data){ $("#target_NowPlaying_GetArtistPictureUrls_local").html(
+                                (data.error?'error: '+data.error:data.join("; "))
+                        ); }
+                );
+                Beekeeper.NowPlaying_GetArtistPictureUrls(
+                        false,
+                        function(data){ $("#target_NowPlaying_GetArtistPictureUrls_all").html(
+                                (data.error?'error: '+data.error:data.join("; "))
+                        ); }
+                );
+            }
+            $("#link_NowPlaying_GetArtistPictureUrls").click(run_NowPlaying_GetArtistPictureUrls);
+
+            function run_Playlist_AppendFiles() {
+                Beekeeper.Playlist_AppendFiles(
+                        playlistUrl,
+                        [trackUrl, trackUrl],
+                        function(data){ $("#target_Playlist_AppendFiles").html(
+                                (data===null)?'appending files failed, read only?':
+                                        (data.error?'error: '+data.error:
+                                                (data?'tracks appended':'tracks not appended'))
+                        ); }
+                );
+            }
+            $("#link_Playlist_AppendFiles").click(run_Playlist_AppendFiles);
+
+            function run_Library_QueryFilesEx() {
+                Beekeeper.Library_QueryFilesEx(
+                        '<SmartPlaylist><Source Type="1"><Conditions CombineMethod="All"><Condition Field="None" Comparison="Contains" Value="'+$("#input_Library_QueryFilesEx").val()+'" /></Conditions></Source></SmartPlaylist>',
+                        function(data){ $("#target_Library_QueryFilesEx").html(
+                                (data.error?'error: '+data.error:data.join("<br/>"))
+                        ); }
+                )
+            }
+            $("#link_Library_QueryFilesEx").click(run_Library_QueryFilesEx);
+
+            function run_NowPlayingList_QueryFilesEx() {
+                Beekeeper.NowPlayingList_QueryFilesEx(
+                        '<SmartPlaylist><Source Type="1"><Conditions CombineMethod="All"><Condition Field="None" Comparison="Contains" Value="'+$("#input_NowPlayingList_QueryFilesEx").val()+'" /></Conditions></Source></SmartPlaylist>',
+                        function(data){ $("#target_NowPlayingList_QueryFilesEx").html(
+                                (data.error?'error: '+data.error:data.join("<br/>"))
+                        ); }
+                )
+            }
+            $("#link_NowPlayingList_QueryFilesEx").click(run_NowPlayingList_QueryFilesEx);
+
+            function run_Playlist_QueryFilesEx() {
+                Beekeeper.Playlist_QueryFilesEx(
+                        playlistUrl,
+                        function(data){ $("#target_Playlist_QueryFilesEx").html(
+                                (data.error?'error: '+data.error:data.join("<br/>"))
+                        ); }
+                );
+            }
+            $("#link_Playlist_QueryFilesEx").click(run_Playlist_QueryFilesEx);
+
+            function run_Playlist_MoveFiles() {
+                Beekeeper.Playlist_MoveFiles(
+                        playlistUrl,
+                        [9, 8], // move the 9th and 10th track in reverse order
+                        1,      // to the 2nd (!) position (!! -1 not accepted, unlike NowPlaying)
+                        function(data){ $("#target_Playlist_MoveFiles").html(
+                                (data===null)?'moving files failed, read only?':
+                                        (data.error?'error: '+data.error:
+                                                (data?'tracks moved':'tracks not moved'))
+                        ); }
+                );
+            }
+            $("#link_Playlist_MoveFiles").click(run_Playlist_MoveFiles);
+
+            function run_Playlist_MoveFiles_BK() {
+                Beekeeper.Playlist_MoveFiles_BK(
+                        playlistUrl,
+                        [9, 8], // move the 9th and 10th track in reverse order
+                        0,     // to the top position
+                        function(data){ $("#target_Playlist_MoveFiles_BK").html(
+                                (data===null)?'moving files failed, read only?':
+                                        (data.error?'error: '+data.error:
+                                                (data?'tracks moved':'tracks not moved'))
+                        ); }
+                );
+            }
+            $("#link_Playlist_MoveFiles_BK").click(run_Playlist_MoveFiles_BK);
+
+            function run_Playlist_PlayNow() {
+                Beekeeper.Playlist_PlayNow(
+                        playlistUrl,
+                        function(data){ $("#target_Playlist_PlayNow").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'playlist playing':'playlist not playing'))
+                        ); }
+                );
+            }
+            $("#link_Playlist_PlayNow").click(run_Playlist_PlayNow);
+
+            function run_NowPlaying_IsSoundtrack() {
+                Beekeeper.NowPlaying_IsSoundtrack(
+                        function(data){ $("#target_NowPlaying_IsSoundtrack").html(
+                                (data.error?'error: '+data.error:
+                                        (data?'current track is soundtrack':'current track is not soundtrack'))
+                        ); }
+                );
+            }
+            $("#link_NowPlaying_IsSoundtrack").click(run_NowPlaying_IsSoundtrack);
+
+            function run_NowPlaying_GetSoundtrackPictureUrls() {
+                    Beekeeper.NowPlaying_GetSoundtrackPictureUrls(
+                            false,
+                            function(data){ $("#target_NowPlaying_GetSoundtrackPictureUrls").html(
+                                    (data.error?'error: '+data.error:data
+                                            .map(
+                                                    function(s){
+                                                        return '<a href="'+s+'">Image</a> '
+                                                    }
+                                            )
+                                            .join("<br>"))
+                            ); }
+                    );
+            }
+            $("#link_NowPlaying_GetSoundtrackPictureUrls").click(run_NowPlaying_GetSoundtrackPictureUrls);
+
+            var someId;
+            Beekeeper.Library_GetDevicePersistentId(
+                    trackUrl,
+                    Beekeeper.DeviceIdType.GooglePlay,
+                    function(data){
+                        someId = data;
+                        $("#target_Library_GetDevicePersistentId").html(
+                            (data===null)?'getting track id failed, no device?':
+                                    (data.error?'error: '+data.error:data)
+                    ); }
+            );
+
+            Beekeeper.Library_SetDevicePersistentId(
+                    trackUrl,
+                    Beekeeper.DeviceIdType.GooglePlay,
+                    someId,
+                    function(data){ $("#target_Library_SetDevicePersistentId").html(
+                            (data===null)?'setting track id failed, no device?':
+                                    (data.error?'error: '+data.error:
+                                            (data?'track id set':'track id not set'))
+                    ); }
+            );
+
+            Beekeeper.Library_FindDevicePersistentId(
+                    Beekeeper.DeviceIdType.GooglePlay,
+                    [someId],
+                    function(data){ $("#target_Library_FindDevicePersistentId").html(
+                            (data===null)?'finding persistent ids failed, no device?':
+                                    (data.error?'error: '+data.error:data.join('; '))
+                    ); }
+            );
+
+            Beekeeper.Setting_GetValue(
+                    Beekeeper.SettingId.CompactPlayerFlickrEnabled,
+                    function(data){ $("#target_Setting_GetValue").html(
+                            (data===null)?'problem retrieving setting':
+                                    (data.error?'error: '+data.error:
+                                            (data?'compact player Flickr is enabled':'compact player Flickr not enabled'))
+                    ); }
+            );
+
+            Beekeeper.Setting_GetValue_BK(
+                    Beekeeper.SettingId_BK.LastFmUserId,
+                    function(data){ $("#target_Setting_GetValue_BK").html(
+                            (data===null)?'problem retrieving setting':
+                                    (data.error?'error: '+data.error:data)
+                    ); }
+            );
+
+            Beekeeper.Setting_GetValues_BK(
+                    [Beekeeper.SettingId_BK.LastFmUserId, Beekeeper.SettingId_BK.Version_BK],
+                    function(data){ $("#target_Setting_GetValues_BK").html(
+                            (data===null)?'problem retrieving setting':
+                                    (data.error?'error: '+data.error:data.join(';'))
+                    ); }
+            );
+
+            Beekeeper.Setting_SetValue_BK(
+                    Beekeeper.SettingId_BK.EqualizerEnabled,
+                    false,
+                    function(data){ $("#target_Setting_SetValue_BK").html(
+                            (data===null)?'problem changing setting':
+                                    (data.error?'error: '+data.error:
+                                            (data?'setting changed':'setting not changed'))
+                    ); }
+            );
+
+            Beekeeper.Setting_SetValues_BK(
+                    [Beekeeper.SettingId_BK.EqualizerEnabled, Beekeeper.SettingId_BK.DspEnabled],
+                    [false, false],
+                    function(data){ $("#target_Setting_SetValues_BK").html(
+                            (data===null)?'problem changing setting':
+                                    (data.error?'error: '+data.error:
+                                            (data?'settings changed':'settings not changed (some or all)'))
+                    ); }
+            );
+
+            function run_Playlist_DeletePlaylist() {
+                if (createdPlayList==null) {
+                    alert ('Create the playlist first with Playlist_CreatePlaylist!')
+                } else {
+                    Beekeeper.Playlist_DeletePlaylist(
+                            createdPlayList,
+                            function(data){ $("#target_Playlist_DeletePlaylist").html(
+                                    (data===null)?'unable to delete playlist, read only?':
+                                            (data.error?'error: '+data.error:
+                                                    (data?'playlist deleted':'playlist not deleted'))
+                            ); }
+                    );
+                }
+            }
+            $("#link_Playlist_DeletePlaylist").click(run_Playlist_DeletePlaylist);
+
+            function run_Library_GetSyncDelta() {
+                Beekeeper.Library_GetSyncDelta(
+                        [],
+                        new Date(2013,1,1,0,0,0,0),
+                        Beekeeper.LibraryCategory_BK.Music,
+                        function(data){ $("#target_Library_GetSyncDelta").html(
+                                (data===null)?'problem getting sync delta':
+                                        (data.error?'error: '+data.error:
+                                                (JSON.stringify(data)))
+                        ); }
+                );
+            }
+            $("#link_Library_GetSyncDelta").click(run_Library_GetSyncDelta);
+
+            Beekeeper.Library_GetFileTags(
+                    trackUrl,
+                    [Beekeeper.MetaDataType.Artist, Beekeeper.MetaDataType.TrackTitle],
+                    function(data){ $("#target_Library_GetFileTags").html( data ); }
+            );
+
+            function run_NowPlaying_GetFileTags() {
+                Beekeeper.NowPlaying_GetFileTags(
+                        [Beekeeper.MetaDataType.Artist, Beekeeper.MetaDataType.TrackTitle],
+                        function(data){ $("#target_NowPlaying_GetFileTags").html( data ); }
+                );
+            }
+            $("#link_NowPlaying_GetFileTags").click(run_NowPlaying_GetFileTags);
+
+            function run_NowPlayingList_GetFileTags() {
+                Beekeeper.NowPlayingList_GetFileTags(
+                        0, // top item
+                        [Beekeeper.MetaDataType.Artist, Beekeeper.MetaDataType.TrackTitle],
+                        function(data){ $("#target_NowPlayingList_GetFileTags").html( data ); }
+                );
+            }
+            $("#link_NowPlayingList_GetFileTags").click(run_NowPlayingList_GetFileTags);
+
+            function run_MB_DownloadFile() {
+                Beekeeper.MB_DownloadFile(
+                        'http://www.noiseaddicts.com/samples/3739.mp3', // some 'music' file
+                        Beekeeper.DownloadTarget.SpecificFolder,
+                        'E:\\0000',
+                        false,
+                        function(data){ $("#target_MB_DownloadFile").html(
+                                (data===null)?'problem downloading file, download not allowed in settings?':
+                                        (data.error?'error: '+data.error:
+                                                (data?'download started':'download not started'))
+                        ); }
+                );
+            }
+            $("#link_MB_DownloadFile").click(run_MB_DownloadFile);
+
+
+            function myHandler1 (event, data) {
+                $("#target_myHandler1").append(JSON.stringify(data));
+            }
+
+            function myHandler2 (event, data) {
+                $("#target_myHandler2").append(JSON.stringify(data));
+            }
+
+            function myHandler3 (event, data) {
+                $("#target_myHandler3").append(JSON.stringify(data));
+            }
+
+            Beekeeper.AddEventListener(myHandler1);
+            Beekeeper.AddEventListener(myHandler2);
+            Beekeeper.AddEventListener(myHandler3, ['someEvent']); // doesn't listen to 'testEvent'
+            Beekeeper.TestEventListeners("first test");
+            Beekeeper.RemoveEventListener(myHandler1);
+            Beekeeper.TestEventListeners("second test");
+            Beekeeper.RemoveEventListener(myHandler2);
+            Beekeeper.RemoveEventListener(myHandler3);
+
+            function handleEvent (event, data) {
+                $("#target_handleEvent").append('<p><pre>'+event+':'+JSON.stringify(data)+'</pre></p>');
+            }
+            Beekeeper.AddEventListener(handleEvent);
+
+            function run_StartCatchingEvents() {
+                Beekeeper.StartCatchingEvents('/events');
+            }
+            $("#link_StartCatchingEvents").click(run_StartCatchingEvents);
+
+            function run_StopCatchingEvents() {
+                Beekeeper.StopCatchingEvents();
+            }
+            $("#link_StopCatchingEvents").click(run_StopCatchingEvents);
+
+            function run_IsCatchingEvents() {
+                $("#target_IsCatchingEvents").html(Beekeeper.IsCatchingEvents()?'catching events':'not catching events');
+            }
+            $("#link_IsCatchingEvents").click(run_IsCatchingEvents);
+
+        });
+    </script>
+</head>
+<body>
+    <p>Note: some of the commands may cause MusicBee to react with dialogs, please be prepared to respond. For commands with a link label, click the link to execute the command.</p>
+    <p>Note: some calls are executed when the page loads, others only when the link is clicked - this is not a requirement, just a convenience.</p>
+    <table>
+        <tr><td>Setting_GetPersistentStoragePath: </td><td id="target_Setting_GetPersistentStoragePath">[result]</td></tr>
+        <tr><td>Setting_GetReadOnly_BK: </td><td id="target_Setting_GetReadOnly_BK">[result]</td></tr>
+        <tr><td>Setting_GetShare_BK: </td><td id="target_Setting_GetShare_BK">[result]</td></tr>
+        <tr><td>Setting_GetVersion_BK: </td><td id="target_Setting_GetVersion_BK">[result]</td></tr>
+        <tr><td>Setting_GetSkin: </td><td id="target_Setting_GetSkin">[result]</td></tr>
+        <tr><td>Setting_GetSkinElementColor: </td><td id="target_Setting_GetSkinElementColor">[result]</td></tr>
+        <tr><td>Setting_IsWindowBordersSkinned: </td><td id="target_Setting_IsWindowBordersSkinned">[result]</td></tr>
+        <tr><td>Library_GetFileProperty:</td><td id="target_Library_GetFileProperty">[result]</td></tr>
+        <tr><td>Library_GetFileTag: </td><td id="target_Library_GetFileTag">[result]</td></tr>
+        <tr><td>Library_SetFileTag: </td><td id="target_Library_SetFileTag">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Library_CommitTagsToFile">Library_CommitTagsToFile</a>: </td><td id="target_Library_CommitTagsToFile">[result]</td></tr>
+        <tr><td>Library_GetLyrics: </td><td id="target_Library_GetLyrics">[result]</td></tr>
+        <tr><td>Library_GetArtwork: </td><td id="target_Library_GetArtwork">[result]</td></tr>
+        <tr><td><label for="input_Library_QueryFiles"><a href="javascript:" id="link_Library_QueryFiles">Library_QueryFiles</a>: </label><input type="text" size="4" id="input_Library_QueryFiles"></td><td id="target_Library_QueryFiles">[result]</td></tr>
+        <tr><td>Library_QueryGetNextFile: </td><td id="target_Library_QueryGetNextFile">[result]</td></tr>
+        <tr><td>Player_GetPosition: </td><td id="target_Player_GetPosition">[result]</td></tr>
+        <tr><td><label for="input_Player_SetPosition"><a href="javascript:" id="link_Player_SetPosition">Player_SetPosition</a>: </label><input type="text" size="4" id="input_Player_SetPosition"></td><td id="target_Player_SetPosition">[result]</td></tr>
+        <tr><td>Player_GetPlayState: </td><td id="target_Player_GetPlayState">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Player_PlayPause">Player_PlayPause</a>: </td><td id="target_Player_PlayPause">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Player_Stop">Player_Stop</a>: </td><td id="target_Player_Stop">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Player_StopAfterCurrent">Player_StopAfterCurrent</a>: </td><td id="target_Player_StopAfterCurrent">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Player_PlayPreviousTrack">Player_PlayPreviousTrack</a>: </td><td id="target_Player_PlayPreviousTrack">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Player_PlayNextTrack">Player_PlayNextTrack</a>: </td><td id="target_Player_PlayNextTrack">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Player_StartAutoDj">Player_StartAutoDj</a>: </td><td id="target_Player_StartAutoDj">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Player_EndAutoDj">Player_EndAutoDj</a>: </td><td id="target_Player_EndAutoDj">[result]</td></tr>
+        <tr><td>Player_GetVolume: </td><td id="target_Player_GetVolume">[result]</td></tr>
+        <tr><td>Player_SetVolume: </td><td id="target_Player_SetVolume">[result]</td></tr>
+        <tr><td>Player_GetMute: </td><td id="target_Player_GetMute">[result]</td></tr>
+        <tr><td>Player_SetMute: </td><td id="target_Player_SetMute">[result]</td></tr>
+        <tr><td>Player_GetShuffle: </td><td id="target_Player_GetShuffle">[result]</td></tr>
+        <tr><td>Player_SetShuffle: </td><td id="target_Player_SetShuffle">[result]</td></tr>
+        <tr><td>Player_GetRepeat: </td><td id="target_Player_GetRepeat">[result]</td></tr>
+        <tr><td>Player_SetRepeat: </td><td id="target_Player_SetRepeat">[result]</td></tr>
+        <tr><td>Player_GetEqualizerEnabled: </td><td id="target_Player_GetEqualizerEnabled">[result]</td></tr>
+        <tr><td>Player_SetEqualizerEnabled: </td><td id="target_Player_SetEqualizerEnabled">[result]</td></tr>
+        <tr><td>Player_GetDspEnabled: </td><td id="target_Player_GetDspEnabled">[result]</td></tr>
+        <tr><td>Player_SetDspEnabled: </td><td id="target_Player_SetDspEnabled">[result]</td></tr>
+        <tr><td>Player_GetScrobbleEnabled: </td><td id="target_Player_GetScrobbleEnabled">[result]</td></tr>
+        <tr><td>Player_SetScrobbleEnabled: </td><td id="target_Player_SetScrobbleEnabled">[result]</td></tr>
+        <tr><td>NowPlaying_GetFileUrl: </td><td id="target_NowPlaying_GetFileUrl">[result]</td></tr>
+        <tr><td>NowPlaying_GetDuration: </td><td id="target_NowPlaying_GetDuration">[result]</td></tr>
+        <tr><td>NowPlaying_GetFileProperty: </td><td id="target_NowPlaying_GetFileProperty">[result]</td></tr>
+        <tr><td>NowPlaying_GetLyrics: </td><td id="target_NowPlaying_GetLyrics">[result]</td></tr>
+        <tr><td>NowPlaying_GetArtwork: </td><td id="target_NowPlaying_GetArtwork">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_Clear">NowPlayingList_Clear</a>: </td><td id="target_NowPlayingList_Clear">[result]</td></tr>
+        <tr><td><label for="input_NowPlayingList_QueryFiles"><a href="javascript:" id="link_NowPlayingList_QueryFiles">NowPlayingList_QueryFiles</a>: </label><input type="text" size="4" id="input_NowPlayingList_QueryFiles"></td><td id="target_NowPlayingList_QueryFiles">[result]</td></tr>
+        <tr><td>NowPlayingList_QueryGetNextFile: </td><td id="target_NowPlayingList_QueryGetNextFile">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_PlayNow">NowPlayingList_PlayNow</a>: </td><td id="target_NowPlayingList_PlayNow">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_QueueNext">NowPlayingList_QueueNext</a>: </td><td id="target_NowPlayingList_QueueNext">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_QueueLast">NowPlayingList_QueueLast</a>: </td><td id="target_NowPlayingList_QueueLast">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_PlayLibraryShuffled">NowPlayingList_PlayLibraryShuffled</a>: </td><td id="target_NowPlayingList_PlayLibraryShuffled">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_QueryPlaylists">Playlist_QueryPlaylists</a></td><td id="target_Playlist_QueryPlaylists">[result]</td></tr>
+        <tr><td>Playlist_QueryGetNextPlaylist: </td><td id="target_Playlist_QueryGetNextPlaylist">[result]</td></tr>
+        <tr><td>Playlist_GetFormat: </td><td id="target_Playlist_GetFormat">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_QueryFiles">Playlist_QueryFiles</a>: </td><td id="target_Playlist_QueryFiles">[result]</td></tr>
+        <tr><td>Playlist_QueryGetNextFile: </td><td id="target_Playlist_QueryGetNextFile">[result]</td></tr>
+        <tr><td>MB_RefreshPanels: </td><td id="target_MB_RefreshPanels">[result]</td></tr>
+        <tr><td>Setting_GetFieldName: </td><td id="target_Setting_GetFieldName">[result]</td></tr>
+        <tr><td>Setting_GetDefaultFontName_BK: </td><td id="target_Setting_GetDefaultFontName_BK">[result]</td></tr>
+        <tr><td>NowPlayingList_GetFileUrlAt: </td><td id="target_NowPlayingList_GetFileUrlAt">[result]</td></tr>
+        <tr><td>NowPlayingList_GetFilePropertyAt: </td><td id="target_NowPlayingList_GetFilePropertyAt">[result]</td></tr>
+        <tr><td>NowPlayingList_GetFileTagAt: </td><td id="target_NowPlayingList_GetFileTagAt">[result]</td></tr>
+        <tr><td>MB_GetLocalisation: </td><td id="target_MB_GetLocalization">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_IsAnyPriorTracks">NowPlayingList_IsAnyPriorTracks</a>: </td><td id="target_NowPlayingList_IsAnyPriorTracks">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_IsAnyFollowingTracks">NowPlayingList_IsAnyFollowingTracks</a>: </td><td id="target_NowPlayingList_IsAnyFollowingTracks">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Player_ShowEqualizer">Player_ShowEqualizer</a> (may cause crash!): </td><td id="target_Player_ShowEqualizer">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Player_GetAutoDjEnabled">Player_GetAutoDjEnabled</a>: </td><td id="target_Player_GetAutoDjEnabled">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Player_GetStopAfterCurrentEnabled">Player_GetStopAfterCurrentEnabled</a>: </td><td id="target_Player_GetStopAfterCurrentEnabled">[result]</td></tr>
+        <tr><td>Player_GetCrossfade: </td><td id="target_Player_GetCrossfade">[result]</td></tr>
+        <tr><td>Player_SetCrossfade: </td><td id="target_Player_SetCrossfade">[result]</td></tr>
+        <tr><td>Player_GetReplayGainMode: </td><td id="target_Player_GetReplayGainMode">[result]</td></tr>
+        <tr><td>Player_SetReplayGainMode: </td><td id="target_Player_SetReplayGainMode">[result]</td></tr>
+        <tr><td><label for="input_Player_QueueRandomTracks"><a href="javascript:" id="link_Player_QueueRandomTracks">Player_QueueRandomTracks</a>: </label><input type="text" size="4" id="input_Player_QueueRandomTracks"></td><td id="target_Player_QueueRandomTracks">[result]</td></tr>
+        <tr><td><label for="input_NowPlayingList_GetNextIndex"><a href="javascript:" id="link_NowPlayingList_GetNextIndex">NowPlayingList_GetNextIndex</a>: </label><input type="text" size="4" id="input_NowPlayingList_GetNextIndex"></td><td id="target_NowPlayingList_GetNextIndex">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlaying_GetArtistPictureLink_BK">NowPlaying_GetArtistPictureLink_BK</a>: </td><td id="target_NowPlaying_GetArtistPictureLink_BK">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlaying_GetDownloadedArtworkLink_BK">NowPlaying_GetDownloadedArtworkLink_BK</a>: </td><td id="target_NowPlaying_GetDownloadedArtworkLink_BK">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_MB_ShowNowPlayingAssistant">MB_ShowNowPlayingAssistant</a>: </td><td id="target_MB_ShowNowPlayingAssistant">[result]</td></tr>
+        <tr><td>Player_GetShowRatingTrack: </td><td id="target_Player_GetShowRatingTrack">[result]</td></tr>
+        <tr><td>Player_GetShowRatingLove: </td><td id="target_Player_GetShowRatingLove">[result]</td></tr>
+        <tr><td>Setting_GetLastFmUserId: </td><td id="target_Setting_GetLastFmUserId">[result]</td></tr>
+        <tr><td>Playlist_GetName: </td><td id="target_Playlist_GetName">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_CreatePlaylist">Playlist_CreatePlaylist</a>: </td><td id="target_Playlist_CreatePlaylist">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_SetFiles">Playlist_SetFiles</a>: </td><td id="target_Playlist_SetFiles">[result]</td></tr>
+        <tr><td><label for="input_Library_QuerySimilarArtists_1"><a href="javascript:" id="link_Library_QuerySimilarArtists">Library_QuerySimilarArtists</a>: </label><input type="text" size="4" id="input_Library_QuerySimilarArtists_1"><label for="input_Library_QuerySimilarArtists_2">Similarity: </label><input type="text" size="4" id="input_Library_QuerySimilarArtists_2"></td><td id="target_Library_QuerySimilarArtists">[result]</td></tr>
+        <tr><td>Library_QueryLookupTable: </td><td id="target_Library_QueryLookupTable">[result]</td></tr>
+        <tr><td>Library_QueryGetLookupTableValue: </td><td id="target_Library_QueryGetLookupTableValue">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_QueueFilesNext">NowPlayingList_QueueFilesNext</a>: </td><td id="target_NowPlayingList_QueueFilesNext">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_QueueFilesLast">NowPlayingList_QueueFilesLast</a>: </td><td id="target_NowPlayingList_QueueFilesLast">[result]</td></tr>
+        <tr><td>Setting_GetWebProxy: </td><td id="target_Setting_GetWebProxy">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_RemoveAt">NowPlayingList_RemoveAt</a>: </td><td id="target_NowPlayingList_RemoveAt">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_RemoveAt">Playlist_RemoveAt</a>: </td><td id="target_Playlist_RemoveAt">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_MB_SetWindowSize">MB_SetWindowSize</a>: </td><td id="target_MB_SetWindowSize">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Library_GetArtistPictureLink_BK">Library_GetArtistPictureLink_BK</a>: </td><td id="target_Library_GetArtistPictureLink_BK">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Pending_GetFileUrl">Pending_GetFileUrl</a>: </td><td id="target_Pending_GetFileUrl">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Pending_GetFileProperty">Pending_GetFileProperty</a>: </td><td id="target_Pending_GetFileProperty">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Pending_GetFileTag">Pending_GetFileTag</a>: </td><td id="target_Pending_GetFileTag">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Player_GetButtonEnabled">Player_GetButtonEnabled</a>: </td><td id="target_Player_GetButtonEnabled">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_MoveFiles">NowPlayingList_MoveFiles</a>: </td><td id="target_NowPlayingList_MoveFiles">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_MoveFiles_BK">NowPlayingList_MoveFiles_BK</a>: </td><td id="target_NowPlayingList_MoveFiles_BK">[result]</td></tr>
+        <tr><td>Library_GetArtworkUrlLink_BK: </td><td id="target_Library_GetArtworkUrlLink_BK">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Library_GetArtistPictureThumbLink_BK">Library_GetArtistPictureThumbLink_BK</a>: </td><td id="target_Library_GetArtistPictureThumbLink_BK">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlaying_GetArtworkUrlLink_BK">NowPlaying_GetArtworkUrlLink_BK</a>: </td><td id="target_NowPlaying_GetArtworkUrlLink_BK">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlaying_GetDownloadedArtworkUrlLink_BK">NowPlaying_GetDownloadedArtworkUrlLink_BK</a>: </td><td id="target_NowPlaying_GetDownloadedArtworkUrlLink_BK">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlaying_GetArtistPictureThumbLink_BK">NowPlaying_GetArtistPictureThumbLink_BK</a>: </td><td id="target_NowPlaying_GetArtistPictureThumbLink_BK">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_IsInList">Playlist_IsInList</a>: </td><td id="target_Playlist_IsInList">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Library_GetArtistPictureUrls">Library_GetArtistPictureUrls</a>: </td><td><span id="target_Library_GetArtistPictureUrls_local">[result 1]</span><span id="target_Library_GetArtistPictureUrls_all">[result 2]</span></td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlaying_GetArtistPictureUrls">NowPlaying_GetArtistPictureUrls</a>: </td><td><span id="target_NowPlaying_GetArtistPictureUrls_local">[result 1]</span><span id="target_NowPlaying_GetArtistPictureUrls_all">[result 2]</span></td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_AppendFiles">Playlist_AppendFiles</a>: </td><td id="target_Playlist_AppendFiles">[result]</td></tr>
+        <tr><td><label for="input_Library_QueryFilesEx"><a href="javascript:" id="link_Library_QueryFilesEx">Library_QueryFilesEx</a>: </label><input type="text" size="4" id="input_Library_QueryFilesEx"></td><td id="target_Library_QueryFilesEx">[result]</td></tr>
+        <tr><td><label for="input_NowPlayingList_QueryFilesEx"><a href="javascript:" id="link_NowPlayingList_QueryFilesEx">NowPlayingList_QueryFilesEx</a>: </label><input type="text" size="4" id="input_NowPlayingList_QueryFilesEx"></td><td id="target_NowPlayingList_QueryFilesEx">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_QueryFilesEx">Playlist_QueryFilesEx</a>: </td><td id="target_Playlist_QueryFilesEx">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_MoveFiles">Playlist_MoveFiles</a>: </td><td id="target_Playlist_MoveFiles">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_MoveFiles_BK">Playlist_MoveFiles_BK</a>: </td><td id="target_Playlist_MoveFiles_BK">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_PlayNow">Playlist_PlayNow</a>: </td><td id="target_Playlist_PlayNow">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlaying_IsSoundtrack">NowPlaying_IsSoundtrack</a>: </td><td id="target_NowPlaying_IsSoundtrack">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlaying_GetSoundtrackPictureUrls">NowPlaying_GetSoundtrackPictureUrls</a>: </td><td id="target_NowPlaying_GetSoundtrackPictureUrls">[result]</td></tr>
+        <tr><td>Library_GetDevicePersistentId: </td><td id="target_Library_GetDevicePersistentId">[result]</td></tr>
+        <tr><td>Library_SetDevicePersistentId: </td><td id="target_Library_SetDevicePersistentId">[result]</td></tr>
+        <tr><td>Library_FindDevicePersistentId: </td><td id="target_Library_FindDevicePersistentId">[result]</td></tr>
+        <tr><td>Setting_GetValue: </td><td id="target_Setting_GetValue">[result]</td></tr>
+        <tr><td>Setting_GetValue_BK: </td><td id="target_Setting_GetValue_BK">[result]</td></tr>
+        <tr><td>Setting_GetValues_BK: </td><td id="target_Setting_GetValues_BK">[result]</td></tr>
+        <tr><td>Setting_SetValue_BK: </td><td id="target_Setting_SetValue_BK">[result]</td></tr>
+        <tr><td>Setting_SetValues_BK: </td><td id="target_Setting_SetValues_BK">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_Playlist_DeletePlaylist">Playlist_DeletePlaylist</a>: </td><td id="target_Playlist_DeletePlaylist">[result]</td></tr>
+        <tr><td>Library_GetFileTags: </td><td id="target_Library_GetFileTags">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlaying_GetFileTags">NowPlaying_GetFileTags</a>: </td><td id="target_NowPlaying_GetFileTags">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_NowPlayingList_GetFileTags">NowPlayingList_GetFileTags</a>: </td><td id="target_NowPlayingList_GetFileTags">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_MB_DownloadFile">MB_DownloadFile</a>: </td><td id="target_MB_DownloadFile">[result]</td></tr>
+        <tr><td>Event Handler 1: </td><td id="target_myHandler1">[result]</td></tr>
+        <tr><td>Event Handler 2: </td><td id="target_myHandler2">[result]</td></tr>
+        <tr><td>Event Handler 3: </td><td id="target_myHandler3">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_StartCatchingEvents">StartCatchingEvents</a>, <a href="javascript:" id="link_StopCatchingEvents">StopCatchingEvents</a>: </td><td id="target_handleEvent">[result]</td></tr>
+        <tr><td><a href="javascript:" id="link_IsCatchingEvents">IsCatchingEvents</a>: </td><td id="target_IsCatchingEvents">[result]</td></tr>
+    </table>
+</body>
+</html>
