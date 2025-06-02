@@ -2408,7 +2408,7 @@ var Beekeeper = {
      * eventTimeout should always be above or equal to BeekeeperServer.longPollingDelay (Beekeeper.cs)
      */
     eventTimeout: 5000,
-    pauseAfterError: 5000,
+    pauseAfterError: 10000,
     catchingEvents: false,
 
     /**
@@ -2463,6 +2463,10 @@ var Beekeeper = {
         if (eventsUrl!==undefined) {
             this.eventsUrl = eventsUrl;
         }
+        if (this.currentEventCall && this.currentEventCall.readyState !== 4) {
+            // Already polling, don't start another
+            return;
+        }
         this.catchingEvents = true;
         Beekeeper.currentEventCall = $.ajax({
             type: "GET",
@@ -2480,8 +2484,7 @@ var Beekeeper = {
                     }
                 }
                 setTimeout(
-                    Beekeeper.StartCatchingEvents,
-                    Beekeeper.eventTimeout // <-- use the configured timeout here
+                    Beekeeper.StartCatchingEvents, 0 // try again immediately
                 );
             },
 
