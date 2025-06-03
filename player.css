@@ -1,25 +1,40 @@
+/* Base styles - Mobile first */
+:root {
+    --safe-area-inset-top: env(safe-area-inset-top, 0px);
+    --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+    --cover-size-mobile: min(280px, 70vw);
+    --cover-size-desktop: 320px;
+    --primary-color: #1db954;
+    --background-color: #181818;
+    --text-color: #eee;
+}
+
 body {
-    background: #181818;
-    color: #eee;
+    background: var(--background-color);
+    color: var(--text-color);
     font-family: 'Segoe UI', Arial, sans-serif;
     margin: 0;
-    padding: 0;
+    padding: calc(1em + var(--safe-area-inset-top)) 1em calc(1em + var(--safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
+    box-sizing: border-box;
 }
 
 #nowPlaying {
-    margin-top: 2em;
+    margin-top: 1em;
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: 100%;
+    max-width: var(--cover-size-mobile);
 }
 
 #npCover {
-    width: 280px;
-    height: 280px;
+    width: 100%;
+    height: var(--cover-size-mobile);
+    aspect-ratio: 1;
     background: #222;
     border-radius: 12px;
     overflow: hidden;
@@ -37,8 +52,8 @@ body {
 }
 
 #npInfo {
-    margin-top: 1.2em;
-    font-size: 1.2em;
+    margin-top: 1em;
+    font-size: clamp(1rem, 2.5vw, 1.2rem);
     font-weight: 500;
     color: #fff;
     display: flex;
@@ -46,10 +61,11 @@ body {
     align-items: center;
     justify-content: center;
     gap: 0.2em;
+    width: 100%;
 }
 
 #npArtist, #npTrack {
-    max-width: 240px;
+    width: 100%;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -58,10 +74,11 @@ body {
 
 #npMeta {
     margin-top: 1em;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 1em;
+    gap: clamp(0.5em, 2vw, 1em);
 }
 
 #npStars .star {
@@ -117,10 +134,11 @@ body {
 }
 
 #controls {
-    margin-top: 2em;
+    margin-top: 1.5em;
     display: flex;
-    gap: 1.5em;
+    gap: clamp(1em, 3vw, 1.5em);
     justify-content: center;
+    width: 100%;
 }
 
 #controls button {
@@ -128,13 +146,14 @@ body {
     color: #fff;
     border: none;
     border-radius: 50%;
-    width: 56px;
-    height: 56px;
-    font-size: 1.7em;
+    width: clamp(48px, 12vw, 56px);
+    height: clamp(48px, 12vw, 56px);
+    padding: 0;
     cursor: pointer;
     box-shadow: 0 2px 8px #0005;
     transition: background 0.2s, transform 0.1s;
     outline: none;
+    touch-action: manipulation;
 }
 
 #controls button:active {
@@ -149,4 +168,75 @@ body {
 
 #controls button#cPlayPause:active {
     background: #169c43;
+}
+
+/* Tablet and larger screens */
+@media (min-width: 768px) {
+    #nowPlaying {
+        max-width: var(--cover-size-desktop);
+    }
+
+    #npCover {
+        height: var(--cover-size-desktop);
+    }
+
+    #npInfo {
+        font-size: 1.2rem;
+    }
+
+    /* Optional: Add hover effects only on devices that support hover */
+    @media (hover: hover) {
+        #controls button:hover {
+            background: #333;
+            transform: scale(1.05);
+        }
+
+        #controls button#cPlayPause:hover {
+            background: #1ed760;
+        }
+    }
+}
+
+/* Desktop layout - optional expanded features */
+@media (min-width: 1024px) {
+    body {
+        padding: 2em;
+    }
+
+    #nowPlaying {
+        margin-top: 2em;
+    }
+
+    /* Optional: Add a more sophisticated layout for desktop */
+    .desktop-expanded {
+        display: flex;
+        gap: 2em;
+    }
+
+    /* Add space for potential additional features */
+    .desktop-features {
+        display: none;
+    }
+
+    @media (min-width: 1200px) {
+        .desktop-features {
+            display: block;
+            width: 300px;
+        }
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background-color: #181818;
+        --text-color: #eee;
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --background-color: #fff;
+        --text-color: #181818;
+    }
 }
