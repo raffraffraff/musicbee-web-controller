@@ -39,7 +39,61 @@ function updateLove(loved) {
     }
 }
 
-let player = {
+const player = {
+    updateCoverArt: function() {
+        $('#npCover > img').css('opacity', 0.4);
+        Beekeeper.NowPlaying_GetArtwork(
+            function(data){
+                if (data && data.error) {
+                    console.error(data.error);
+                    $('#npCover').html("<div class='error'>No cover available</div>");
+                    return;
+                }
+                $('#npCover').html("<img src='data:image/jpg;base64," + data + "'/>");
+                $('#npCover > img').on('load', function() {
+                    $('#npCover > img').css('opacity', 1);
+                });
+            }
+        );
+    },
+
+    updateTrackInfo: function() {
+        Beekeeper.NowPlaying_GetFileTags(
+            [
+                Beekeeper.MetaDataType.TrackTitle, 
+                Beekeeper.MetaDataType.Artist,
+                Beekeeper.MetaDataType.Rating,
+                Beekeeper.MetaDataType.RatingLove,
+            ],
+            function(data){
+                if (data && data.error) {
+                    console.error(data.error);
+                    $("#npTrack").text("No track title");
+                    $("#npArtist").text("No artist");
+                    updateStars(0);
+                    updateLove(false);
+                    return;
+                }
+
+                // Artist and title
+                $("#npArtist").text(data[1]);
+                $("#npTrack").text(data[0]);
+
+                // Rating
+                let num = Number(data[2]);
+                if (isNaN(num) || num < 0 || num > 5) {
+                    num = 0; // Default to 0 if invalid
+                }
+                updateStars(num);
+
+                // Love
+                let love = data[3];
+                let loved = (love === "L" || love === "1" || love === 1 || love === true);
+                updateLove(loved);
+            }
+        );
+    },
+
     updateControls: function(playState) {
         switch (playState) {
             case Beekeeper.PlayState.Loading:
@@ -93,55 +147,10 @@ let player = {
     },
 
     updateNowPlaying: function(fileUrl) {
-        $('#npCover > img').css('opacity', 0.4);
-        Beekeeper.NowPlaying_GetArtwork(
-            function(data){
-                if (data && data.error) {
-                    console.error(data.error);
-                    $('#npCover').html("<div class='error'>No cover available</div>");
-                    return;
-                }
-                $('#npCover').html("<img src='data:image/jpg;base64," + data + "'/>");
-                $('#npCover > img').on('load', function() {
-                    $('#npCover > img').css('opacity', 1);
-                });
-            }
-        );
-        Beekeeper.NowPlaying_GetFileTags(
-            [
-                Beekeeper.MetaDataType.TrackTitle, 
-                Beekeeper.MetaDataType.Artist,
-                Beekeeper.MetaDataType.Rating,
-                Beekeeper.MetaDataType.RatingLove,
-            ],
-            function(data){
-                if (data && data.error) {
-                    console.error(data.error);
-                    $("#npTrack").text("No track title");
-                    $("#npArtist").text("No artist");
-                    updateStars(0);
-                    updateLove(false);
-                    return;
-                }
-
-                // Artist and title
-                $("#npArtist").text(data[1]);
-                $("#npTrack").text(data[0]);
-
-                // Rating
-                let num = Number(data[2]);
-                if (isNaN(num) || num < 0 || num > 5) {
-                    num = 0; // Default to 0 if invalid
-                }
-                updateStars(num);
-
-                // Love
-                let love = data[3];
-                let loved = (love === "L" || love === "1" || love === 1 || love === true);
-                updateLove(loved);
-            }
-        );
-
+        // Update track info immediately
+        player.updateTrackInfo();
+        // Update cover art in parallel
+        player.updateCoverArt();
     },
 
     handleEvent: function(event, data) {
@@ -234,7 +243,7 @@ let player = {
         });
 
         Beekeeper.AddEventListener(player.handleEvent);
-        Beekeeper.StartCatchingEvents('/events');
+        Beekeeper.StartCatchingEvents('/api/events');
     }
 };
 

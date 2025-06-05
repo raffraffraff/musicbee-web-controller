@@ -25,8 +25,12 @@
  */
 
 let Beekeeper = {
-// Definition of MusicBee specific data types
-// Note: the comments for Web API methods will mention the data type when applicable
+
+    basePath: "http://musicbee.local/api/",
+
+    // Definition of MusicBee specific data types
+    // Note: the comments for Web API methods will mention the data type when applicable
+
     /**
      * @static {int} SkinElement
      */
@@ -293,11 +297,6 @@ let Beekeeper = {
         MusicLibrary: 1,
         SpecificFolder: 3
     },
-
-    /**
-     * @static {string} basePath
-     */
-    basePath: "http://localhost:8080/",
 
     /** 
      * Generic Call function, invokes method 'name' with data 'input' and calls 'callback' function with output data.
@@ -2415,7 +2414,7 @@ let Beekeeper = {
      * Default url for catching events.
      * Needs to point to http://musicbee_machine:beekeeper_port/events
      */
-    eventsUrl: '/events',
+    eventsUrl: '/api/events',
 
     AddEventListener: function (eventListener, events) {
         this.eventListeners[eventListener] = {
