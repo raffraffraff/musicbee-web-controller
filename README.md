@@ -1,3 +1,6 @@
+# About
+This is a simple web controller for MusicBee. Currently it can fetch album art, artist, title, rating and Last.FM loved status. It requires the Beekeeper MusicBee plugin which you can download [here](http://grismar.net/beekeeper/plugin.zip). Unzip it to the MusicBee plugins directory and restart MusicBee. For full functionality, change the configuration to allow database updates (this will let you change the rating and love / unlove tracks).
+
 # Installation
 I'm keeping this extremely short right now because it's barely working:
 
