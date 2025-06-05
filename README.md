@@ -1,5 +1,5 @@
 # About
-This is a simple web controller for MusicBee. Currently it can fetch album art, artist, title, rating and Last.FM loved status. It requires the Beekeeper MusicBee plugin which you can download [here](http://grismar.net/beekeeper/plugin.zip). Unzip it to the MusicBee plugins directory and restart MusicBee. For full functionality, change the configuration to allow database updates (this will let you change the rating and love / unlove tracks).
+This is a simple web controller for MusicBee. Currently it can fetch album art, artist, title, rating and Last.FM loved status. I'm adding volume control and some basic tag editing. It requires the Beekeeper MusicBee plugin which you can download [here](http://grismar.net/beekeeper/plugin.zip). Unzip it to the MusicBee plugins directory and restart MusicBee. For full functionality, change the configuration to allow database updates (this will let you change the rating and love / unlove tracks).
 
 ![screenshot](https://github.com/raffraffraff/musicbee-web-controller/blob/main/screenshot.jpg?raw=true)
 
@@ -7,33 +7,13 @@ This is a simple web controller for MusicBee. Currently it can fetch album art, 
 I'm keeping this extremely short right now because it's barely working:
 
 1. Install Musicbee
-2. Install the beekeeper plugin (which provides the API that this project uses)
-3. Install a web server (eg: nginx)
-4. Deploy these files (eg: /var/www/musicbee-web) and update the hostname in beekeeper.js
+2. Install the [beekeeper plugin](http://grismar.net/beekeeper/plugin.zip) by unzipping to the Musicbee 'Plugins' directory
+3. Run MusicBee, and under Edit > Preferences > Plugins > Beekeeper...
+   - Set the port to 8080
+   - Ensure that Service and Serving shared are checked
+   - Uncheck 'Don't allow web API calls to modify MusicBee database (read only)
+4. Compile server.go and run it
+   - You'll need Go installed, just run `go build server.go`
+   - If you're running on Linux you need extra privileges to use port 80 (so I run `sudo ./server`)
 
-# Example nginx configuration
-This assumes that the MusicBee player and beekeeper plugin are running on localhost:8080
-
-```
-server {
-    listen 80;
-    server_name musicbee.local;
-
-    # Serve the website
-    root /var/www/beekeeper-ui;
-    index player.html;
-
-    # Route API requests to the backend service
-    location /api/ {
-        proxy_pass http://localhost:8080/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        add_header 'Access-Control-Allow-Origin' '*';
-        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS';
-        add_header 'Access-Control-Allow-Headers' 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range';
-    }
-}
-```
-
-Then hit this URL in your browser: http://musicbee.local/file/player.html
+That's it! Open your browser and enter the hostname or IP address of the server and you an control MusicBee from your phone's web browser!
