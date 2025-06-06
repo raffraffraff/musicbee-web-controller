@@ -135,8 +135,7 @@ func main() {
 	// Serve static files from embedded filesystem, default to player.html
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
-			http.ServeFile(w, r, "web/player.html")
-			return
+			r.URL.Path = "/player.html"
 		}
 		fs.ServeHTTP(w, r)
 	})
