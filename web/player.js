@@ -39,10 +39,27 @@ function updateLove(loved) {
     }
 }
 
+let currentFileUrl = null;
+
+function fetchAndSetFileUrl(callback) {
+    Beekeeper.NowPlaying_GetFileUrl(function(url) {
+        currentFileUrl = url;
+        if (callback) callback(url);
+    });
+}
+
 const player = {
     updateCoverArt: function() {
         $('#npCover > img').css('opacity', 0.4);
-        Beekeeper.NowPlaying_GetArtwork(
+        if (!currentFileUrl) {
+            fetchAndSetFileUrl(function(url) {
+                player.updateCoverArt();
+            });
+            return;
+        }
+        Beekeeper.Library_GetArtwork(
+            currentFileUrl,
+            0,
             function(data){
                 if (data && data.error) {
                     console.error(data.error);
@@ -58,7 +75,14 @@ const player = {
     },
 
     updateTrackInfo: function() {
-        Beekeeper.NowPlaying_GetFileTags(
+        if (!currentFileUrl) {
+            fetchAndSetFileUrl(function(url) {
+                player.updateTrackInfo();
+            });
+            return;
+        }
+        Beekeeper.Library_GetFileTags(
+            currentFileUrl,
             [
                 Beekeeper.MetaDataType.TrackTitle, 
                 Beekeeper.MetaDataType.Artist,
@@ -147,9 +171,8 @@ const player = {
     },
 
     updateNowPlaying: function(fileUrl) {
-        // Update track info immediately
+        currentFileUrl = fileUrl;
         player.updateTrackInfo();
-        // Update cover art in parallel
         player.updateCoverArt();
     },
 
