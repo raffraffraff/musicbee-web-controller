@@ -1,20 +1,28 @@
 # About
-This is a simple web controller for MusicBee. Currently it can fetch album art, artist, title, rating and Last.FM loved status. I'm adding volume control and some basic tag editing. It requires the Beekeeper MusicBee plugin which you can download [here](http://grismar.net/beekeeper/plugin.zip). Unzip the plugin into the MusicBee 'Plugins' directory and restart MusicBee. For full functionality, change the configuration of the Beekeeper plugin to allow database updates (this will let you change the rating and love / unlove tracks).
+This is a simple web controller for MusicBee. Currently it can fetch album art, artist, title. It can also get and set track rating and Last.FM 'love' status. I plan to add volume control and tag editing features, and I'd like it to fetch missing album art and write it to the file. The remote control requires the Beekeeper MusicBee plugin, which you can download [here](http://grismar.net/beekeeper/plugin.zip). To install it just unzip the plugin into the MusicBee 'Plugins' directory and restart MusicBee. For full functionality, you'll have to grant the plugin the wright to modify the MusicBee database because it's read-only be default.
 
 ![screenshot](https://github.com/raffraffraff/musicbee-web-controller/blob/main/screenshot.jpg?raw=true)
 
 # Installation
-I'm keeping this extremely short right now because it's barely working:
+If you have go installed, you should be able to do this:
+```
+go install github.com/raffraffraff/musicbee-web-controller@latest
+```
 
-1. Install Musicbee
-2. Install the [beekeeper plugin](http://grismar.net/beekeeper/plugin.zip) by unzipping to the Musicbee 'Plugins' directory
-3. Run MusicBee, and under Edit > Preferences > Plugins > Beekeeper...
-   - Set the port to 8080
-   - Ensure that Service and Serving shared are checked
-   - Uncheck 'Don't allow web API calls to modify MusicBee database (read only)
-4. Compile server.go and run it on the same computer that runs MusicBee
-   - You'll need Go installed, just run `go build server.go`
-   - The web assets are embedded into the server executable, so you just need one file
-   - You may need extra privileges to run it on port 80 (eg: on Linux I run `sudo ./server`)
+If you're running on Linux (since MusicBee works pretty well in wine) you can grant the program the right to use port 80. This command requires `setcap` which is part of the libcap package, but the exact name differs from one distro to the next. Anyway, the command is:
 
-That's it! Open your browser and enter the hostname or IP address of the MusicBee computer and you can control the player from your phone or desktop browser.
+```
+sudo setcap CAP_NET_BIND_SERVICE=+eip ~/go/bin/musicbee-web-controller
+```
+
+If you want to build and install yourself:
+- `git clone git@github.com:raffraffraff/musicbee-web-controller.git`
+- `go build musicbee-web-controller.go`
+
+# Configuring MusicBee
+After you install MusicBee you should download the [beekeeper plugin](http://grismar.net/beekeeper/plugin.zip) by unzipping it into Musicbee 'Plugins' directory. Launch MusicBee and under Edit > Preferences > Plugins > Beekeeper...
+ - Set the port to 8080
+ - Ensure that Service and Serving shared are checked
+ - Uncheck 'Don't allow web API calls to modify MusicBee database (read only)
+
+That's it! Open your browser and enter the hostname or IP address of the computer that runs MusicBee and musicbee-web-controller. (Tip: You may have to manually add 'http://' because most browsers assume you're using https these days, and setting that up is beyond the scope of this guide)
