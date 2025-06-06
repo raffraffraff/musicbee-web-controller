@@ -1,12 +1,17 @@
 package main
 
 import (
+	"embed"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
 )
+
+//go:embed web/*
+var embeddedWebFS embed.FS
 
 func main() {
 	// Reverse proxy to backend
@@ -40,14 +45,19 @@ func main() {
 		proxy.ServeHTTP(w, r)
 	})
 
-	// Serve static files from /var/www/beekeeper-ui, default to player.html
-	fs := http.FileServer(http.Dir("/var/www/beekeeper-ui"))
+	// Create a filesystem for the embedded web files
+	webFS, err := fs.Sub(embeddedWebFS, "web")
+	if err != nil {
+		log.Fatalf("Failed to create sub FS: %v", err)
+	}
+	fs := http.FileServer(http.FS(webFS))
+
+	// Serve static files from embedded filesystem, default to player.html
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
-			http.ServeFile(w, r, "/var/www/beekeeper-ui/player.html")
+			http.ServeFile(w, r, "web/player.html")
 			return
 		}
-		// Allow fallback to static files
 		fs.ServeHTTP(w, r)
 	})
 
