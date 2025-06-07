@@ -1,15 +1,18 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"embed"
 	"encoding/json"
+	"flag"
 	"io"
 	"io/fs"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 )
@@ -19,9 +22,47 @@ var embeddedWebFS embed.FS
 
 var artworkCache sync.Map // map[fileUrl]string (base64 image)
 
+func readConfig(filename string) map[string]string {
+	config := make(map[string]string)
+	file, err := os.Open(filename)
+	if err != nil {
+		return config // silently ignore if not found
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if i := strings.Index(line, "="); i > 0 {
+			key := strings.TrimSpace(line[:i])
+			val := strings.TrimSpace(line[i+1:])
+			config[key] = val
+		}
+	}
+	return config
+}
+
 func main() {
-	// Reverse proxy to backend
-	backendURL, err := url.Parse("http://localhost:8080")
+	configFile := flag.String("config", "", "Config file path")
+	flag.Parse()
+
+	config := make(map[string]string)
+	if *configFile != "" {
+		config = readConfig(*configFile)
+	} else {
+		if _, err := os.Stat("settings.conf"); err == nil {
+			config = readConfig("settings.conf")
+		}
+	}
+
+	backendUrl := "http://localhost:8080"
+	if v, ok := config["beekeeper"]; ok && v != "" {
+		backendUrl = v
+	}
+
+	backendURL, err := url.Parse(backendUrl)
 	if err != nil {
 		log.Fatalf("Invalid backend URL: %v", err)
 	}
@@ -75,7 +116,7 @@ func main() {
 
 		// Not cached: proxy to backend and cache result
 		//log.Printf("Forwarding request to backend for fileUrl: %s\n", fileUrl)
-		backendReq, err := http.NewRequest(http.MethodPost, "http://localhost:8080/Library_GetArtwork", bytes.NewReader(body))
+		backendReq, err := http.NewRequest(http.MethodPost, backendUrl+"/Library_GetArtwork", bytes.NewReader(body))
 		if err != nil {
 			log.Printf("Failed to create backend request: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -140,8 +181,13 @@ func main() {
 		fs.ServeHTTP(w, r)
 	})
 
-	log.Println("Listening on :80")
-	err = http.ListenAndServe(":80", nil)
+	listenPort := "80"
+	if v, ok := config["port"]; ok && v != "" {
+		listenPort = v
+	}
+
+	log.Println("Listening on port " + listenPort)
+	err = http.ListenAndServe(":"+listenPort, nil)
 	if err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
