@@ -13,99 +13,119 @@
     <script src="player.js"></script>
 </head>
 <body>
-    <!-- Add SVG definitions for gradients -->
-    <svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
-        <defs>
-            <linearGradient id="half-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="50%" stop-color="#FFD700"/>
-                <stop offset="50%" stop-color="#bbb"/>
-            </linearGradient>
-        </defs>
-    </svg>
-    <div id="nowPlaying">
-        <div id="npCover"></div>
-        <div id="npInfo">
-            <div id="npArtist"></div>
-            <div id="npTrack"></div>
+    <nav style="margin-bottom: 1em;">
+        <button onclick="showView('playerView')">Player</button>
+        <button onclick="showView('otherView')">Other View</button>
+    </nav>
+    <div id="playerView">
+        <!-- ...existing player UI... -->
+        <svg style="width:0;height:0;position:absolute;" aria-hidden="true" focusable="false">
+            <defs>
+                <linearGradient id="half-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="50%" stop-color="#FFD700"/>
+                    <stop offset="50%" stop-color="#bbb"/>
+                </linearGradient>
+            </defs>
+        </svg>
+        <div id="nowPlaying">
+            <div id="npCover"></div>
+            <div id="npInfo">
+                <div id="npArtist"></div>
+                <div id="npTrack"></div>
+            </div>
+        </div>
+        <div id="npMeta">
+            <span id="npStars">
+                <span class="star" data-value="1">
+                    <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
+                        <defs>
+                            <linearGradient id="half-gradient-1" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="50%" stop-color="#FFD700"/>
+                                <stop offset="50%" stop-color="#bbb"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
+                    </svg>
+                </span>
+                <span class="star" data-value="2">
+                    <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
+                        <defs>
+                            <linearGradient id="half-gradient-2" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="50%" stop-color="#FFD700"/>
+                                <stop offset="50%" stop-color="#bbb"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
+                    </svg>
+                </span>
+                <span class="star" data-value="3">
+                    <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
+                        <defs>
+                            <linearGradient id="half-gradient-3" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="50%" stop-color="#FFD700"/>
+                                <stop offset="50%" stop-color="#bbb"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
+                    </svg>
+                </span>
+                <span class="star" data-value="4">
+                    <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
+                        <defs>
+                            <linearGradient id="half-gradient-4" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="50%" stop-color="#FFD700"/>
+                                <stop offset="50%" stop-color="#bbb"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
+                    </svg>
+                </span>
+                <span class="star" data-value="5">
+                    <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
+                        <defs>
+                            <linearGradient id="half-gradient-5" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="50%" stop-color="#FFD700"/>
+                                <stop offset="50%" stop-color="#bbb"/>
+                            </linearGradient>
+                        </defs>
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
+                    </svg>
+                </span>
+            </span>
+            <span id="npLove" title="Love">
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                    <path class="heart" d="M12 21s-6.7-5.2-9.1-8.1C1.1 11.7 1 9.2 2.7 7.5 4.3 5.9 6.9 6 8.5 7.6L12 11l3.5-3.4C17.1 6 19.7 5.9 21.3 7.5c1.7 1.7 1.6 4.2-.2 5.4C18.7 15.8 12 21 12 21z"/>
+                </svg>
+            </span>
+        </div>
+        <div id="controls">
+            <button id="cPreviousTrack" title="Previous">
+                <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="18,6 18,22 8,14" fill="currentColor"/><rect x="6" y="6" width="2" height="16" fill="currentColor"/></svg>
+            </button>
+            <button id="cPlayPause" title="Play/Pause">
+                <svg id="playIcon" width="28" height="28" viewBox="0 0 28 28"><polygon points="10,6 22,14 10,22" fill="currentColor"/></svg>
+                <svg id="pauseIcon" width="28" height="28" viewBox="0 0 28 28" style="display:none;"><rect x="9" y="6" width="4" height="16" fill="currentColor"/><rect x="15" y="6" width="4" height="16" fill="currentColor"/></svg>
+            </button>
+            <button id="cStop" title="Stop">
+                <svg width="28" height="28" viewBox="0 0 28 28"><rect x="8" y="8" width="12" height="12" fill="currentColor"/></svg>
+            </button>
+            <button id="cNextTrack" title="Next">
+                <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="10,6 10,22 20,14" fill="currentColor"/><rect x="20" y="6" width="2" height="16" fill="currentColor"/></svg>
+            </button>
         </div>
     </div>
-    <div id="npMeta">        <span id="npStars">
-            <span class="star" data-value="1">
-                <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
-                    <defs>
-                        <linearGradient id="half-gradient-1" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="50%" stop-color="#FFD700"/>
-                            <stop offset="50%" stop-color="#bbb"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
-                </svg>
-            </span>
-            <span class="star" data-value="2">
-                <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
-                    <defs>
-                        <linearGradient id="half-gradient-2" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="50%" stop-color="#FFD700"/>
-                            <stop offset="50%" stop-color="#bbb"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
-                </svg>
-            </span>
-            <span class="star" data-value="3">
-                <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
-                    <defs>
-                        <linearGradient id="half-gradient-3" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="50%" stop-color="#FFD700"/>
-                            <stop offset="50%" stop-color="#bbb"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
-                </svg>
-            </span>
-            <span class="star" data-value="4">
-                <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
-                    <defs>
-                        <linearGradient id="half-gradient-4" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="50%" stop-color="#FFD700"/>
-                            <stop offset="50%" stop-color="#bbb"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
-                </svg>
-            </span>
-            <span class="star" data-value="5">
-                <svg class="star-svg empty" width="28" height="28" viewBox="0 0 24 24">
-                    <defs>
-                        <linearGradient id="half-gradient-5" x1="0%" y1="0%" x2="100%" y2="0%">
-                            <stop offset="50%" stop-color="#FFD700"/>
-                            <stop offset="50%" stop-color="#bbb"/>
-                        </linearGradient>
-                    </defs>
-                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="#bbb"/>
-                </svg>
-            </span>
-        </span>
-        <span id="npLove" title="Love">
-            <svg width="24" height="24" viewBox="0 0 24 24">
-                <path class="heart" d="M12 21s-6.7-5.2-9.1-8.1C1.1 11.7 1 9.2 2.7 7.5 4.3 5.9 6.9 6 8.5 7.6L12 11l3.5-3.4C17.1 6 19.7 5.9 21.3 7.5c1.7 1.7 1.6 4.2-.2 5.4C18.7 15.8 12 21 12 21z"/>
-            </svg>
-        </span>
+    <div id="otherView" style="display:none;">
+        <h2>Other View</h2>
+        <p>This is a placeholder for your new view. Add your content here.</p>
     </div>
-    <div id="controls">
-    <button id="cPreviousTrack" title="Previous">
-        <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="18,6 18,22 8,14" fill="currentColor"/><rect x="6" y="6" width="2" height="16" fill="currentColor"/></svg>
-    </button>
-    <button id="cPlayPause" title="Play/Pause">
-        <svg id="playIcon" width="28" height="28" viewBox="0 0 28 28"><polygon points="10,6 22,14 10,22" fill="currentColor"/></svg>
-        <svg id="pauseIcon" width="28" height="28" viewBox="0 0 28 28" style="display:none;"><rect x="9" y="6" width="4" height="16" fill="currentColor"/><rect x="15" y="6" width="4" height="16" fill="currentColor"/></svg>
-    </button>
-    <button id="cStop" title="Stop">
-        <svg width="28" height="28" viewBox="0 0 28 28"><rect x="8" y="8" width="12" height="12" fill="currentColor"/></svg>
-    </button>
-    <button id="cNextTrack" title="Next">
-        <svg width="28" height="28" viewBox="0 0 28 28"><polygon points="10,6 10,22 20,14" fill="currentColor"/><rect x="20" y="6" width="2" height="16" fill="currentColor"/></svg>
-    </button>
-</div>
 </body>
-</html>
+<!-- ...existing code... -->
+<script>
+function showView(viewId) {
+    $("#playerView, #otherView").hide();
+    $("#" + viewId).show();
+}
+// Optionally, show the player view by default on load
+$(function() { showView('playerView'); });
+</script>
+<!-- ...existing code... -->

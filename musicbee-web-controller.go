@@ -1,17 +1,22 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"embed"
 	"encoding/json"
+	"flag"
 	"io"
 	"io/fs"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 )
 
 //go:embed web/*
@@ -19,9 +24,101 @@ var embeddedWebFS embed.FS
 
 var artworkCache sync.Map // map[fileUrl]string (base64 image)
 
+func readConfig(filename string) map[string]string {
+	config := make(map[string]string)
+	file, err := os.Open(filename)
+	if err != nil {
+		return config // silently ignore if not found
+	}
+	defer file.Close()
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if i := strings.Index(line, "="); i > 0 {
+			key := strings.TrimSpace(line[:i])
+			val := strings.TrimSpace(line[i+1:])
+			config[key] = val
+		}
+	}
+	return config
+}
+
+// Path for persistent cache file
+var artworkCacheFile = "artwork-cache.json"
+var artworkCacheEnabled = "true"
+
+// Save artworkCache to disk
+func saveArtworkCache() {
+	cache := make(map[string]string)
+	artworkCache.Range(func(key, value interface{}) bool {
+		k, ok1 := key.(string)
+		v, ok2 := value.(string)
+		if ok1 && ok2 {
+			cache[k] = v
+		}
+		return true
+	})
+	f, err := os.Create(artworkCacheFile)
+	if err != nil {
+		log.Printf("Failed to save artwork cache: %v", err)
+		return
+	}
+	defer f.Close()
+	enc := json.NewEncoder(f)
+	if err := enc.Encode(cache); err != nil {
+		log.Printf("Failed to encode artwork cache: %v", err)
+	}
+}
+
+// Load artworkCache from disk
+func loadArtworkCache() {
+	f, err := os.Open(artworkCacheFile)
+	if err != nil {
+		return // no cache file
+	}
+	defer f.Close()
+	cache := make(map[string]string)
+	dec := json.NewDecoder(f)
+	if err := dec.Decode(&cache); err != nil {
+		log.Printf("Failed to decode artwork cache: %v", err)
+		return
+	}
+	for k, v := range cache {
+		artworkCache.Store(k, v)
+	}
+	log.Printf("Loaded %d artwork cache entries from disk", len(cache))
+}
+
 func main() {
-	// Reverse proxy to backend
-	backendURL, err := url.Parse("http://localhost:8080")
+	configFile := flag.String("config", "", "Config file path")
+	flag.Parse()
+
+	config := make(map[string]string)
+	if *configFile != "" {
+		config = readConfig(*configFile)
+	} else {
+		if _, err := os.Stat("settings.conf"); err == nil {
+			config = readConfig("settings.conf")
+		}
+	}
+
+	backendUrl := "http://localhost:8080" // Default backend URL
+	if v, ok := config["beekeeper"]; ok && v != "" {
+		backendUrl = v
+	}
+
+	if v, ok := config["artwork-cache-file"]; ok && v != "" {
+		artworkCacheFile = v
+	}
+
+	if v, ok := config["artwork-cache-enabled"]; ok && v != "" {
+		artworkCacheEnabled = v
+	}
+
+	backendURL, err := url.Parse(backendUrl)
 	if err != nil {
 		log.Fatalf("Invalid backend URL: %v", err)
 	}
@@ -75,7 +172,7 @@ func main() {
 
 		// Not cached: proxy to backend and cache result
 		//log.Printf("Forwarding request to backend for fileUrl: %s\n", fileUrl)
-		backendReq, err := http.NewRequest(http.MethodPost, "http://localhost:8080/Library_GetArtwork", bytes.NewReader(body))
+		backendReq, err := http.NewRequest(http.MethodPost, backendUrl+"/Library_GetArtwork", bytes.NewReader(body))
 		if err != nil {
 			log.Printf("Failed to create backend request: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -140,8 +237,37 @@ func main() {
 		fs.ServeHTTP(w, r)
 	})
 
-	log.Println("Listening on :80")
-	err = http.ListenAndServe(":80", nil)
+	listenPort := "80"
+	if v, ok := config["port"]; ok && v != "" {
+		listenPort = v
+	}
+
+	log.Println("Listening on port " + listenPort)
+
+	// Load cache from disk
+	if artworkCacheEnabled == "true" {
+		log.Println("Loading artwork cache from " + artworkCacheFile)
+		loadArtworkCache()
+	} else {
+		log.Println("Not loading artwork from " + artworkCacheFile + " because artwork-cache-enabled setting is " + artworkCacheEnabled)
+	}
+
+	// Save cache on exit (SIGINT/SIGTERM)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigs
+		if artworkCacheEnabled != "true" {
+			log.Println("Not saving artwork cache to " + artworkCacheFile + " because artwork-cache-enabled settings is " + artworkCacheEnabled)
+			os.Exit(0)
+		}
+		// Save the cache to disk
+		log.Println("Saving artwork cache to disk...")
+		saveArtworkCache()
+		os.Exit(0)
+	}()
+
+	err = http.ListenAndServe(":"+listenPort, nil)
 	if err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}

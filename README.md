@@ -26,3 +26,21 @@ After you install MusicBee you should download the [beekeeper plugin](http://gri
  - Uncheck 'Don't allow web API calls to modify MusicBee database (read only)
 
 That's it! Open your browser and enter the hostname or IP address of the computer that runs MusicBee and musicbee-web-controller. (Tip: You may have to manually add 'http://' because most browsers assume you're using https these days, and setting that up is beyond the scope of this guide)
+
+# Configuring MusicBee Web Controller
+The MusicBee Web Controller makes a few logical assumptions that you can override:
+- MusicBee and the Beekeeper plugin are running on `http://localhost:8080`
+- The controller should use port `80`
+- Artwork should be cached in `artwork-cache.json`
+
+You do not require a configuration file if you are happy with those defaults, but if you do want to override any of them, create a settings.conf file:
+
+```
+beekeeper = http://musicbee.local:8080
+port = 999
+artwork-cache-file = artwork.json
+artwork-cache-enabled = false
+```
+
+The musicbee-web-controller will load this file from the current directory, if it is present. You can also specify a different location for it, like this:
+`musicbee-web-controller -config=/path/to/settings.conf`
