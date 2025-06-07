@@ -40,24 +40,48 @@ function updateLove(loved) {
 }
 
 let currentFileUrl = null;
+let currentTrackTags = null; // [TrackTitle, Artist, Album, Rating, RatingLove]
 
-function fetchAndSetFileUrl(callback) {
+function fetchAndSetFileUrlAndTags(callback) {
     Beekeeper.NowPlaying_GetFileUrl(function(url) {
         currentFileUrl = url;
-        if (callback) callback(url);
+        fetchTrackTags(url, function(tags) {
+            currentTrackTags = tags;
+            if (callback) callback(url, tags);
+        });
     });
+}
+
+function fetchTrackTags(fileUrl, callback) {
+    Beekeeper.Library_GetFileTags(
+        fileUrl,
+        [
+            Beekeeper.MetaDataType.TrackTitle,
+            Beekeeper.MetaDataType.Artist,
+            Beekeeper.MetaDataType.Album,
+            Beekeeper.MetaDataType.Rating,
+            Beekeeper.MetaDataType.RatingLove,
+        ],
+        callback
+    );
 }
 
 const player = {
     updateCoverArt: function() {
-        $('#npCover > img').css('opacity', 0.4);
         if (!currentFileUrl) {
-            fetchAndSetFileUrl(function(url) {
-                player.updateCoverArt();
-            });
+            console.warn('updateCoverArt: currentFileUrl is not set.');
             return;
         }
+        if (!currentTrackTags) {
+            console.warn('updateCoverArt: currentTrackTags is not set.');
+            return;
+        }
+        $('#npCover > img').css('opacity', 0.4);
+        var artist = currentTrackTags[1] || '';
+        var album = currentTrackTags[2] || '';
+        console.log('Artwork request for artist:', artist, 'album:', album);
         Beekeeper.Library_GetArtwork(
+            artist+ '::' + album,
             currentFileUrl,
             0,
             function(data){
@@ -75,47 +99,32 @@ const player = {
     },
 
     updateTrackInfo: function() {
-        if (!currentFileUrl) {
-            fetchAndSetFileUrl(function(url) {
-                player.updateTrackInfo();
-            });
+        if (!currentTrackTags) {
+            console.warn('updateTrackInfo: currentTrackTags is not set.');
             return;
         }
-        Beekeeper.Library_GetFileTags(
-            currentFileUrl,
-            [
-                Beekeeper.MetaDataType.TrackTitle, 
-                Beekeeper.MetaDataType.Artist,
-                Beekeeper.MetaDataType.Rating,
-                Beekeeper.MetaDataType.RatingLove,
-            ],
-            function(data){
-                if (data && data.error) {
-                    console.error(data.error);
-                    $("#npTrack").text("No track title");
-                    $("#npArtist").text("No artist");
-                    updateStars(0);
-                    updateLove(false);
-                    return;
-                }
-
-                // Artist and title
-                $("#npArtist").text(data[1]);
-                $("#npTrack").text(data[0]);
-
-                // Rating
-                let num = Number(data[2]);
-                if (isNaN(num) || num < 0 || num > 5) {
-                    num = 0; // Default to 0 if invalid
-                }
-                updateStars(num);
-
-                // Love
-                let love = data[3];
-                let loved = (love === "L" || love === "1" || love === 1 || love === true);
-                updateLove(loved);
-            }
-        );
+        let data = currentTrackTags;
+        if (data && data.error) {
+            console.error(data.error);
+            $("#npTrack").text("No track title");
+            $("#npArtist").text("No artist");
+            updateStars(0);
+            updateLove(false);
+            return;
+        }
+        // Artist and title
+        $("#npArtist").text(data[1]);
+        $("#npTrack").text(data[0]);
+        // Rating
+        let num = Number(data[3]);
+        if (isNaN(num) || num < 0 || num > 5) {
+            num = 0; // Default to 0 if invalid
+        }
+        updateStars(num);
+        // Love
+        let love = data[4];
+        let loved = (love === "L" || love === "1" || love === 1 || love === true);
+        updateLove(loved);
     },
 
     updateControls: function(playState) {
@@ -127,7 +136,7 @@ const player = {
                 break;
             case Beekeeper.PlayState.Paused:
                 $("#cPlayPause").addClass("active");
-                $("#cStop").addClass("active");
+                $("#cStop").removeClass("active");
                 setPlayPause(false); // Show play icon
                 break;
             case Beekeeper.PlayState.Playing:
@@ -171,9 +180,16 @@ const player = {
     },
 
     updateNowPlaying: function(fileUrl) {
+        if (!fileUrl) {
+            console.warn('updateNowPlaying called with invalid fileUrl:', fileUrl);
+            return;
+        }
         currentFileUrl = fileUrl;
-        player.updateTrackInfo();
-        player.updateCoverArt();
+        fetchTrackTags(fileUrl, function(tags) {
+            currentTrackTags = tags;
+            player.updateTrackInfo();
+            player.updateCoverArt();
+        });
     },
 
     handleEvent: function(event, data) {
@@ -187,7 +203,11 @@ const player = {
         }
         switch (event) {
             case "TrackChanged":
-                player.updateNowPlaying(data.fileUrl);
+                if (data && data.fileUrl) {
+                    player.updateNowPlaying(data.fileUrl);
+                } else {
+                    Beekeeper.NowPlaying_GetFileUrl(player.updateNowPlaying);
+                }
                 break;
             case "PlayStateChanged":
                 player.updateControls(data.playState);
@@ -276,5 +296,5 @@ $(document).ready(function() {
             $('body').css ('font-family', data + ',sans-serif');
         }
     );
-    player.start();
+    fetchAndSetFileUrlAndTags(() => player.start());
 });
