@@ -81,7 +81,7 @@ const player = {
         var album = currentTrackTags[2] || '';
         console.log('Artwork request for artist:', artist, 'album:', album);
         Beekeeper.Library_GetArtwork(
-            artist+ '::' + album,
+            artist + '::' + album,
             currentFileUrl,
             0,
             function(data){

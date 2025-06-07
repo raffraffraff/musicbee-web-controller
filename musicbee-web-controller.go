@@ -151,6 +151,7 @@ func main() {
 		defer r.Body.Close()
 		var reqData struct {
 			SourceFileUrl string `json:"sourceFileUrl"`
+			CacheKey string `json:"cacheKey"`
 		}
 		err = json.Unmarshal(body, &reqData)
 		if err != nil || reqData.SourceFileUrl == "" {
@@ -159,15 +160,17 @@ func main() {
 			w.Write([]byte("Missing or invalid sourceFileUrl in body"))
 			return
 		}
-		fileUrl := reqData.SourceFileUrl
 
-		if val, ok := artworkCache.Load(fileUrl); ok {
-			log.Printf("Cache HIT for fileUrl: %s\n", fileUrl)
+		fileUrl := reqData.SourceFileUrl
+		cacheKey := reqData.CacheKey
+
+		if val, ok := artworkCache.Load(cacheKey); ok {
+			log.Printf("Cache HIT for cacheKey: %s, fileUrl: %s\n", cacheKey, fileUrl)
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(val)
 			return
 		} else {
-			log.Printf("Cache MISS for fileUrl: %s\n", fileUrl)
+			log.Printf("Cache MISS for cacheKey: %s, fileUrl: %s\n", cacheKey, fileUrl)
 		}
 
 		// Not cached: proxy to backend and cache result
@@ -190,14 +193,14 @@ func main() {
 		}
 		defer resp.Body.Close()
 		respBody, err := io.ReadAll(resp.Body)
-		//log.Printf("Backend response status: %d\n", resp.StatusCode)
+		log.Printf("Backend response status: %d\n", resp.StatusCode)
 		w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
 		w.WriteHeader(resp.StatusCode)
 		if err == nil && resp.StatusCode == 200 {
 			var img string
 			if err := json.Unmarshal(respBody, &img); err == nil {
-				artworkCache.Store(fileUrl, img)
-				log.Printf("Cached artwork for fileUrl: %s\n", fileUrl)
+				artworkCache.Store(cacheKey, img)
+				log.Printf("Cached artwork for cacheKey: %s, fileUrl: %s\n", cacheKey, fileUrl)
 			} else {
 				log.Printf("Failed to unmarshal backend response for fileUrl: %s\n", fileUrl)
 			}

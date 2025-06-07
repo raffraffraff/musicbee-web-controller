@@ -553,10 +553,10 @@ let Beekeeper = {
      * @param {int} index Index of image in source file (in case of multiple images, starting at 0)
      * @param {function (object)} callback Callback function for method, expecting a (string) JSON object
      */
-    Library_GetArtwork: function(sourceFileUrl, index, callback) {
+    Library_GetArtwork: function(cacheKey, sourceFileUrl, index, callback) {
         this.Call(
             'Library_GetArtwork',
-            { sourceFileUrl: sourceFileUrl, index: index },
+            { cacheKey: cacheKey, sourceFileUrl: sourceFileUrl, index: index },
             callback
         )
     },
