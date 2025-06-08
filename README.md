@@ -1,5 +1,13 @@
-# About
-This is a simple web controller for MusicBee. Currently it can fetch album art, artist, title. It can also get and set track rating and Last.FM 'love' status. I plan to add volume control and tag editing features, and I'd like it to fetch missing album art and write it to the file. The remote control requires the Beekeeper MusicBee plugin, which you can download [here](http://grismar.net/beekeeper/plugin.zip). To install it just unzip the plugin into the MusicBee 'Plugins' directory and restart MusicBee. For full functionality, you'll have to grant the plugin the wright to modify the MusicBee database because it's read-only be default.
+# Features
+
+This is a very a simple web-based controller for MusicBee. You can see/update track ratings and Last.FM 'love' status. It can fetch album art and track information. Album art is cached in two places: in the browser (reducing calls to the backend), and at the backend (further reducing calls to MusicBee). 
+
+This remote control requires the Beekeeper MusicBee plugin, which you can download [here](http://grismar.net/beekeeper/plugin.zip). 
+
+# Planned features
+* Volume control
+* Fetch missing art
+* Load any playlist
 
 ![screenshot](https://github.com/raffraffraff/musicbee-web-controller/blob/main/screenshot.jpg?raw=true)
 

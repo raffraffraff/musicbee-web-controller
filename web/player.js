@@ -66,6 +66,9 @@ function fetchTrackTags(fileUrl, callback) {
     );
 }
 
+// JS-side in-memory cache for album art
+const albumArtCache = new Map(); // key: artist::album or artist::
+
 const player = {
     updateCoverArt: function() {
         if (!currentFileUrl) {
@@ -79,9 +82,21 @@ const player = {
         $('#npCover > img').css('opacity', 0.4);
         var artist = currentTrackTags[1] || '';
         var album = currentTrackTags[2] || '';
+        var cacheKey = artist + '::' + (album || '');
+        // Try cache first
+        if (albumArtCache.has(cacheKey)) {
+            const data = albumArtCache.get(cacheKey);
+            $('#npCover').html("<img src='data:image/jpg;base64," + data + "'/>");
+            $('#npCover > img').on('load', function() {
+                $('#npCover > img').css('opacity', 1);
+            });
+            console.log('Loaded artwork from JS cache for', cacheKey);
+            return;
+        }
+        // Not in cache, fetch from backend
         console.log('Artwork request for artist:', artist, 'album:', album);
         Beekeeper.Library_GetArtwork(
-            artist + '::' + album,
+            cacheKey, // still pass artist::album as first arg for backend
             currentFileUrl,
             0,
             function(data){
@@ -90,6 +105,7 @@ const player = {
                     $('#npCover').html("<div class='error'>No cover available</div>");
                     return;
                 }
+                albumArtCache.set(cacheKey, data); // cache it
                 $('#npCover').html("<img src='data:image/jpg;base64," + data + "'/>");
                 $('#npCover > img').on('load', function() {
                     $('#npCover > img').css('opacity', 1);
