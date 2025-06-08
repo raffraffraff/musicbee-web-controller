@@ -9,10 +9,9 @@ This remote control requires the Beekeeper MusicBee plugin, which you can downlo
 * Show previous / next tracks on the main screen
   * Number of previous / next should be configurable (eventually)
 * Update stupid 'player' and 'other view' buttons
-  * Other View should be the complete Now Playing list
-  * Hide "Player" button when on the Player view
-  * Hide "Now Playing" button when on the Now Playing view
-* Implement "Now Playing" view
+  * Other View should be "Now Playing"
+  * Hide a button when you are already in that view
+* Implement the "Now Playing" view
   * Show the entire Now Playing list with a scroll bar
   * For now, artist/title tags sufficient
   * Implement "play" button beside each track to jump to it
