@@ -6,8 +6,24 @@ This remote control requires the Beekeeper MusicBee plugin, which you can downlo
 
 # Planned features
 * Volume control
-* Fetch missing art
-* Load any playlist
+* Show previous / next tracks on the main screen
+  * Number of previous / next should be configurable (eventually)
+* Update stupid 'player' and 'other view' buttons
+  * Other View should be the complete Now Playing list
+  * Hide "Player" button when on the Player view
+  * Hide "Now Playing" button when on the Now Playing view
+* Implement "Now Playing" view
+  * Show the entire Now Playing list with a scroll bar
+  * For now, artist/title tags sufficient
+  * Implement "play" button beside each track to jump to it
+  * Implement "trashcan" button beside each track to remove it from the Now Playing list
+* Add "Search" view
+  * Search MusicBee library for any string
+  * Implement "queue next" and "queue last" buttons beside each track
+* Add "Playlists" view
+  * Show all playlists
+  * Implement "play", "queue next" and "queue last" buttons beside each playlist
+* Fetch missing art online (Note: implement on the backend? hard to write back since it may be missing 'per track' and not 'per album')
 * More configuration options, eg:
   * Disable album art (not everybody needs it!)
 
