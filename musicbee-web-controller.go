@@ -151,7 +151,7 @@ func main() {
 		defer r.Body.Close()
 		var reqData struct {
 			SourceFileUrl string `json:"sourceFileUrl"`
-			CacheKey string `json:"cacheKey"`
+			CacheKey      string `json:"cacheKey"`
 		}
 		err = json.Unmarshal(body, &reqData)
 		if err != nil || reqData.SourceFileUrl == "" {
@@ -199,8 +199,12 @@ func main() {
 		if err == nil && resp.StatusCode == 200 {
 			var img string
 			if err := json.Unmarshal(respBody, &img); err == nil {
-				artworkCache.Store(cacheKey, img)
-				log.Printf("Cached artwork for cacheKey: %s, fileUrl: %s\n", cacheKey, fileUrl)
+				if len(img) < 9000 {
+					log.Printf("No artwork found for fileUrl: %s, refusing to cache empty response for cacheKey %s\n", fileUrl, cacheKey)
+				} else {
+					artworkCache.Store(cacheKey, img)
+					log.Printf("Cached artwork for cacheKey: %s, fileUrl: %s\n", cacheKey, fileUrl)
+				}
 			} else {
 				log.Printf("Failed to unmarshal backend response for fileUrl: %s\n", fileUrl)
 			}
