@@ -8,6 +8,8 @@ This remote control requires the Beekeeper MusicBee plugin, which you can downlo
 * Volume control
 * Fetch missing art
 * Load any playlist
+* More configuration options, eg:
+  * Disable album art (not everybody needs it!)
 
 ![screenshot](https://github.com/raffraffraff/musicbee-web-controller/blob/main/screenshot.jpg?raw=true)
 
